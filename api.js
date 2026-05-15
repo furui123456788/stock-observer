@@ -84,15 +84,20 @@ const API = (() => {
     }
 
     /**
-     * 解析单条股票数据
+     * 解析单条股票数据（clist/get 接口）
+     * 注意：clist/get 接口返回的价格已经是正确格式，不需要除以100
      */
     function parseStockItem(item) {
+        // 判断数据格式：如果价格大于10000，说明是整数格式需要转换
+        const needDivide = item.f2 > 10000;
+        const divisor = needDivide ? 100 : 1;
+        
         return {
             code: item.f12 || '',
             name: item.f14 || '',
-            price: item.f2 != null ? item.f2 / 100 : null,
-            changePercent: item.f3 != null ? item.f3 / 100 : null,
-            changeAmount: item.f4 != null ? item.f4 / 100 : null,
+            price: item.f2 != null ? item.f2 / divisor : null,
+            changePercent: item.f3 != null ? item.f3 / 100 : null,  // 涨跌幅始终是x100
+            changeAmount: item.f4 != null ? item.f4 / divisor : null,
             volume: item.f5 || 0,
             turnover: item.f6 || 0,
             amplitude: item.f7 != null ? item.f7 / 100 : null,
@@ -101,12 +106,12 @@ const API = (() => {
             pb: item.f164 != null ? item.f164 / 100 : null,
             totalMarketCap: item.f20 || 0,
             circulatingMarketCap: item.f21 || 0,
-            high: item.f15 != null ? item.f15 / 100 : null,
-            low: item.f16 != null ? item.f16 / 100 : null,
-            open: item.f17 != null ? item.f17 / 100 : null,
-            prevClose: item.f18 != null ? item.f18 / 100 : null,
+            high: item.f15 != null ? item.f15 / divisor : null,
+            low: item.f16 != null ? item.f16 / divisor : null,
+            open: item.f17 != null ? item.f17 / divisor : null,
+            prevClose: item.f18 != null ? item.f18 / divisor : null,
             volumeRatio: item.f10 || 0,
-            secid: item.f13 || `${item.f13 ? '' : ''}`,
+            secid: (item.f13 === 1 || item.f13 === '1') ? '1.' + item.f12 : '0.' + item.f12,
             marketCode: item.f13 || '',
             roe: item.f190 != null ? item.f190 / 100 : null,
             eps: item.f183 != null ? item.f183 / 100 : null,
