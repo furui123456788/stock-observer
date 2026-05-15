@@ -64,6 +64,7 @@ const App = (() => {
         dom.statusDot = document.getElementById('statusDot');
         dom.statusText = document.getElementById('statusText');
         dom.lastUpdateTime = document.getElementById('lastUpdateTime');
+        dom.dataSource = document.getElementById('dataSource');
         dom.stockCount = document.getElementById('stockCount');
         dom.filterResultCount = document.getElementById('filterResultCount');
         dom.filterResultBody = document.getElementById('filterResultBody');
@@ -290,6 +291,16 @@ const App = (() => {
     }
 
     /**
+     * 更新数据源显示
+     */
+    function updateDataSource() {
+        if (dom.dataSource) {
+            const sourceName = API.getCurrentDataSource();
+            dom.dataSource.textContent = `数据来源：${sourceName}`;
+        }
+    }
+
+    /**
      * 设置状态
      */
     function setStatus(text, type = 'idle') {
@@ -320,6 +331,7 @@ const App = (() => {
             updatePagination();
             updateStockCount();
             updateDataTime();
+            updateDataSource();
             setStatus('就绪', 'online');
         } catch (e) {
             dom.stockListBody.innerHTML = '<tr class="loading-row"><td colspan="5">加载失败，请重试</td></tr>';
