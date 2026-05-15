@@ -184,38 +184,43 @@ const API = (() => {
 
     /**
      * 解析股票数据
+     * 注意：clist/get 接口返回的数据格式
+     * - 价格类(f2,f4,f15,f16,f17,f18)：可能是整数格式(x100)，需要判断
+     * - 涨跌幅(f3)、振幅(f7)、换手率(f8)：已经是正确格式，不需要除100
+     * - 估值类(f162,f164)：需要除100
      */
     function parseStockItem(item) {
-        const needDivide = item.f2 > 10000;
-        const divisor = needDivide ? 100 : 1;
+        // 判断价格是否需要除以100（如果价格大于10000，说明是整数格式）
+        const priceNeedDivide = item.f2 > 10000;
+        const priceDivisor = priceNeedDivide ? 100 : 1;
 
         return {
             code: item.f12 || '',
             name: item.f14 || '',
-            price: item.f2 != null ? item.f2 / divisor : null,
-            changePercent: item.f3 != null ? item.f3 / 100 : null,
-            changeAmount: item.f4 != null ? item.f4 / divisor : null,
+            price: item.f2 != null ? item.f2 / priceDivisor : null,
+            changePercent: item.f3 != null ? item.f3 : null,  // 涨跌幅已经是正确格式
+            changeAmount: item.f4 != null ? item.f4 / priceDivisor : null,
             volume: item.f5 || 0,
             turnover: item.f6 || 0,
-            amplitude: item.f7 != null ? item.f7 / 100 : null,
-            turnoverRate: item.f8 != null ? item.f8 / 100 : null,
-            pe: item.f162 != null ? item.f162 / 100 : null,
-            pb: item.f164 != null ? item.f164 / 100 : null,
+            amplitude: item.f7 != null ? item.f7 : null,  // 振幅已经是正确格式
+            turnoverRate: item.f8 != null ? item.f8 : null,  // 换手率已经是正确格式
+            pe: item.f162 != null ? item.f162 / 100 : null,  // PE需要除100
+            pb: item.f164 != null ? item.f164 / 100 : null,  // PB需要除100
             totalMarketCap: item.f20 || 0,
             circulatingMarketCap: item.f21 || 0,
-            high: item.f15 != null ? item.f15 / divisor : null,
-            low: item.f16 != null ? item.f16 / divisor : null,
-            open: item.f17 != null ? item.f17 / divisor : null,
-            prevClose: item.f18 != null ? item.f18 / divisor : null,
+            high: item.f15 != null ? item.f15 / priceDivisor : null,
+            low: item.f16 != null ? item.f16 / priceDivisor : null,
+            open: item.f17 != null ? item.f17 / priceDivisor : null,
+            prevClose: item.f18 != null ? item.f18 / priceDivisor : null,
             volumeRatio: item.f10 || 0,
             secid: (item.f13 === 1 || item.f13 === '1') ? '1.' + item.f12 : '0.' + item.f12,
             marketCode: item.f13 || '',
-            roe: item.f190 != null ? item.f190 / 100 : null,
-            eps: item.f183 != null ? item.f183 / 100 : null,
-            revenueGrowth: item.f184 != null ? item.f184 / 100 : null,
-            profitGrowth: item.f185 != null ? item.f185 / 100 : null,
-            grossMargin: item.f186 != null ? item.f186 / 100 : null,
-            netMargin: item.f187 != null ? item.f187 / 100 : null,
+            roe: item.f190 != null ? item.f190 / 100 : null,  // ROE需要除100
+            eps: item.f183 != null ? item.f183 / 100 : null,  // EPS需要除100
+            revenueGrowth: item.f184 != null ? item.f184 / 100 : null,  // 营收增长需要除100
+            profitGrowth: item.f185 != null ? item.f185 / 100 : null,  // 利润增长需要除100
+            grossMargin: item.f186 != null ? item.f186 / 100 : null,  // 毛利率需要除100
+            netMargin: item.f187 != null ? item.f187 / 100 : null,  // 净利率需要除100
             mainForceNetInflow: item.f62 || 0,
             _raw: item,
             source: 'eastmoney'
