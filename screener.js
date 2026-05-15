@@ -16,21 +16,21 @@ const Screener = (() => {
         if (!stocks || stocks.length === 0) return [];
 
         return stocks.filter(stock => {
-            // PE 筛选
-            if (filters.peMin != null && filters.peMin !== '' && (stock.pe == null || stock.pe < filters.peMin)) return false;
-            if (filters.peMax != null && filters.peMax !== '' && (stock.pe == null || stock.pe > filters.peMax)) return false;
+            // PE 筛选（如果数据为空，跳过该条件）
+            if (filters.peMin != null && filters.peMin !== '' && stock.pe != null && stock.pe < filters.peMin) return false;
+            if (filters.peMax != null && filters.peMax !== '' && stock.pe != null && stock.pe > filters.peMax) return false;
 
-            // PB 筛选
-            if (filters.pbMin != null && filters.pbMin !== '' && (stock.pb == null || stock.pb < filters.pbMin)) return false;
-            if (filters.pbMax != null && filters.pbMax !== '' && (stock.pb == null || stock.pb > filters.pbMax)) return false;
+            // PB 筛选（如果数据为空，跳过该条件）
+            if (filters.pbMin != null && filters.pbMin !== '' && stock.pb != null && stock.pb < filters.pbMin) return false;
+            if (filters.pbMax != null && filters.pbMax !== '' && stock.pb != null && stock.pb > filters.pbMax) return false;
 
-            // ROE 筛选
-            if (filters.roeMin != null && filters.roeMin !== '' && (stock.roe == null || stock.roe < filters.roeMin)) return false;
-            if (filters.roeMax != null && filters.roeMax !== '' && (stock.roe == null || stock.roe > filters.roeMax)) return false;
+            // ROE 筛选（如果数据为空，跳过该条件）
+            if (filters.roeMin != null && filters.roeMin !== '' && stock.roe != null && stock.roe < filters.roeMin) return false;
+            if (filters.roeMax != null && filters.roeMax !== '' && stock.roe != null && stock.roe > filters.roeMax) return false;
 
-            // 营收增长率筛选
-            if (filters.revGrowthMin != null && filters.revGrowthMin !== '' && (stock.revenueGrowth == null || stock.revenueGrowth < filters.revGrowthMin)) return false;
-            if (filters.revGrowthMax != null && filters.revGrowthMax !== '' && (stock.revenueGrowth == null || stock.revenueGrowth > filters.revGrowthMax)) return false;
+            // 营收增长率筛选（如果数据为空，跳过该条件）
+            if (filters.revGrowthMin != null && filters.revGrowthMin !== '' && stock.revenueGrowth != null && stock.revenueGrowth < filters.revGrowthMin) return false;
+            if (filters.revGrowthMax != null && filters.revGrowthMax !== '' && stock.revenueGrowth != null && stock.revenueGrowth > filters.revGrowthMax) return false;
 
             // 总市值筛选（亿）
             if (filters.mcapMin != null && filters.mcapMin !== '') {
