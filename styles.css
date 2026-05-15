@@ -1,0 +1,1638 @@
+/* ============================================
+   A股潜力股观察系统 - 样式表
+   Dark Theme Professional Trading Terminal
+   ============================================ */
+
+/* CSS 变量 */
+:root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2333;
+    --bg-hover: #21262d;
+    --color-up: #ef4444;
+    --color-up-bg: rgba(239, 68, 68, 0.1);
+    --color-down: #22c55e;
+    --color-down-bg: rgba(34, 197, 94, 0.1);
+    --color-flat: #8b949e;
+    --color-accent: #3b82f6;
+    --color-accent-hover: #2563eb;
+    --color-text: #e6edf3;
+    --color-text-secondary: #8b949e;
+    --color-border: #30363d;
+    --color-border-light: #21262d;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+/* Reset & Base */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-primary);
+    color: var(--color-text);
+    line-height: 1.5;
+    overflow-x: hidden;
+    min-height: 100vh;
+    padding-bottom: 40px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 2px;
+}
+
+/* ============================================
+   Header
+   ============================================ */
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    backdrop-filter: blur(10px);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-icon {
+    font-size: 20px;
+}
+
+.header-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.market-status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--color-down-bg);
+    color: var(--color-down);
+    white-space: nowrap;
+}
+
+.market-status.open {
+    background: var(--color-up-bg);
+    color: var(--color-up);
+}
+
+.market-status.closed {
+    background: rgba(139, 148, 158, 0.1);
+    color: var(--color-flat);
+}
+
+.header-time {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+/* ============================================
+   Search Bar
+   ============================================ */
+.search-bar {
+    position: relative;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.search-input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0 10px;
+    transition: border-color var(--transition-fast);
+}
+
+.search-input-wrap:focus-within {
+    border-color: var(--color-accent);
+}
+
+.search-icon {
+    font-size: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.search-input-wrap input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-text);
+    font-size: 13px;
+    padding: 8px 0;
+    font-family: var(--font-sans);
+}
+
+.search-input-wrap input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+.search-clear {
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.search-clear:hover {
+    color: var(--color-text);
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 12px;
+    right: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 200;
+    box-shadow: var(--shadow-lg);
+}
+
+.search-result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border-light);
+    transition: background var(--transition-fast);
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover,
+.search-result-item:active {
+    background: var(--bg-hover);
+}
+
+.search-result-name {
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+.search-result-code {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+    font-family: var(--font-mono);
+}
+
+.search-result-price {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 13px;
+}
+
+.search-result-change {
+    font-size: 11px;
+    font-family: var(--font-mono);
+}
+
+/* ============================================
+   Tab Navigation
+   ============================================ */
+.tab-nav {
+    display: flex;
+    overflow-x: auto;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.tab-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-item {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    cursor: pointer;
+    position: relative;
+    transition: color var(--transition-fast);
+    user-select: none;
+}
+
+.tab-item:active {
+    opacity: 0.7;
+}
+
+.tab-label {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    transition: color var(--transition-fast);
+}
+
+.tab-item.active .tab-label {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.tab-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 2px;
+    background: var(--color-accent);
+    border-radius: 1px;
+}
+
+/* ============================================
+   Main Content & Tab Panels
+   ============================================ */
+.main-content {
+    min-height: calc(100vh - 180px);
+}
+
+.tab-panel {
+    display: none;
+    animation: fadeIn 0.25s ease;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   Panel Toolbar (行情Tab)
+   ============================================ */
+.panel-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border-light);
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sort-label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.sort-select {
+    background: var(--bg-primary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 12px;
+    outline: none;
+    font-family: var(--font-sans);
+}
+
+.sort-order-btn {
+    background: var(--bg-primary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.sort-order-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.market-filter {
+    display: flex;
+    gap: 4px;
+}
+
+.filter-btn {
+    background: var(--bg-primary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-sans);
+}
+
+.filter-btn.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+}
+
+/* ============================================
+   Stock Table
+   ============================================ */
+.stock-table-wrap {
+    overflow-x: auto;
+}
+
+.stock-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.stock-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.stock-table th {
+    background: var(--bg-tertiary);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+    font-size: 11px;
+}
+
+.stock-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-border-light);
+    white-space: nowrap;
+}
+
+.col-price,
+.col-change,
+.col-vol,
+.col-score {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+.stock-table tbody tr {
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.stock-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.stock-table tbody tr:active {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.stock-name-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.stock-name-text {
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+.stock-code-text {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+}
+
+.price-up {
+    color: var(--color-up);
+}
+
+.price-down {
+    color: var(--color-down);
+}
+
+.price-flat {
+    color: var(--color-flat);
+}
+
+.loading-row td {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: 30px 10px;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+}
+
+.page-btn {
+    background: var(--bg-secondary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-sans);
+}
+
+.page-btn:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+}
+
+/* ============================================
+   Technical Analysis Tab
+   ============================================ */
+.tech-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.stock-picker {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.stock-picker input {
+    flex: 1;
+    background: var(--bg-primary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 12px;
+    outline: none;
+    font-family: var(--font-mono);
+}
+
+.stock-picker input:focus {
+    border-color: var(--color-accent);
+}
+
+.btn-primary {
+    background: var(--color-accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    font-family: var(--font-sans);
+    white-space: nowrap;
+}
+
+.btn-primary:hover {
+    background: var(--color-accent-hover);
+}
+
+.btn-primary:active {
+    opacity: 0.8;
+}
+
+.btn-full {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.period-selector {
+    display: flex;
+    gap: 4px;
+}
+
+.period-btn {
+    background: var(--bg-primary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-sans);
+}
+
+.period-btn.active {
+    background: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+}
+
+.tech-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: 13px;
+}
+
+#techStockName {
+    font-weight: 600;
+}
+
+#techStockPrice {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+#techStockChange {
+    font-family: var(--font-mono);
+    font-size: 13px;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.chart-container canvas {
+    display: block;
+    width: 100%;
+}
+
+.chart-small {
+    max-height: 250px;
+}
+
+.indicator-legend {
+    display: flex;
+    gap: 12px;
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border-light);
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+}
+
+.tech-summary {
+    padding: 12px;
+}
+
+.tech-summary h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: var(--color-text);
+}
+
+.tech-indicators-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+}
+
+.tech-indicator-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+}
+
+.tech-indicator-label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+}
+
+.tech-indicator-value {
+    font-size: 14px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+.tech-indicator-signal {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.signal-bullish {
+    color: var(--color-up);
+}
+
+.signal-bearish {
+    color: var(--color-down);
+}
+
+.signal-neutral {
+    color: var(--color-flat);
+}
+
+/* ============================================
+   Capital Flow Tab
+   ============================================ */
+.capital-header {
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.capital-header h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.north-flow-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.flow-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    text-align: center;
+}
+
+.flow-label {
+    display: block;
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+}
+
+.flow-value {
+    display: block;
+    font-size: 14px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+.capital-stock-section {
+    padding: 12px;
+}
+
+.capital-stock-section h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.capital-stock-picker {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.capital-stock-picker input {
+    flex: 1;
+    background: var(--bg-primary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 12px;
+    outline: none;
+    font-family: var(--font-mono);
+}
+
+.capital-stock-picker input:focus {
+    border-color: var(--color-accent);
+}
+
+.fund-flow-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.flow-detail-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    text-align: center;
+}
+
+.flow-detail-card .flow-label {
+    font-size: 10px;
+}
+
+.flow-detail-card .flow-value {
+    font-size: 12px;
+}
+
+/* ============================================
+   Fundamental Screener Tab
+   ============================================ */
+.filter-panel {
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.filter-panel h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-item label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+}
+
+.filter-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-range input {
+    flex: 1;
+    background: var(--bg-primary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    font-size: 12px;
+    outline: none;
+    font-family: var(--font-mono);
+    width: 0;
+}
+
+.filter-range input:focus {
+    border-color: var(--color-accent);
+}
+
+.filter-range span {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+.filter-results {
+    padding: 0 12px 12px;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.results-header h3 {
+    font-size: 14px;
+}
+
+.results-header span {
+    font-size: 12px;
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+}
+
+/* ============================================
+   Smart Pick Tab
+   ============================================ */
+.smart-header {
+    padding: 16px 12px;
+    text-align: center;
+}
+
+.smart-header h3 {
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+
+.smart-desc {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.6;
+}
+
+.smart-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    gap: 12px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.smart-results {
+    padding: 0 12px 12px;
+}
+
+.smart-top-picks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.smart-pick-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.smart-pick-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-md);
+}
+
+.smart-pick-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.smart-pick-name {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.smart-pick-code {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    margin-left: 8px;
+}
+
+.smart-pick-score {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.smart-pick-price-info {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.smart-pick-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.smart-pick-reason {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--color-accent);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.smart-pick-reason.positive {
+    background: var(--color-up-bg);
+    color: var(--color-up);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.smart-pick-reason.negative {
+    background: var(--color-down-bg);
+    color: var(--color-down);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.smart-pick-scores {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.smart-pick-sub-score {
+    text-align: center;
+    padding: 6px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+}
+
+.smart-pick-sub-score-label {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.smart-pick-sub-score-value {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    display: block;
+}
+
+/* ============================================
+   Detail Panel (Slide-in)
+   ============================================ */
+.detail-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 500;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-normal);
+}
+
+.detail-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.detail-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    background: var(--bg-primary);
+    z-index: 600;
+    transition: right var(--transition-normal);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-panel.show {
+    right: 0;
+}
+
+.detail-header {
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    padding: 14px;
+    z-index: 10;
+}
+
+.detail-stock-info {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.detail-stock-info h2 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.detail-stock-code {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+}
+
+.detail-price-info {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.detail-price {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.detail-change {
+    font-size: 14px;
+    font-family: var(--font-mono);
+}
+
+.detail-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
+
+.detail-close:hover {
+    color: var(--color-text);
+}
+
+.detail-body {
+    flex: 1;
+    padding: 0;
+}
+
+.detail-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.detail-section h3 {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.detail-grid-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.detail-grid-item:last-child {
+    border-bottom: none;
+}
+
+.detail-grid-label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+}
+
+.detail-grid-value {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    text-align: right;
+}
+
+.score-gauge-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.score-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.score-detail-item {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+}
+
+.score-detail-label {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.score-detail-value {
+    font-size: 14px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    display: block;
+}
+
+.score-detail-bar {
+    height: 3px;
+    background: var(--color-border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.score-detail-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+}
+
+.detail-chart-wrap {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.detail-chart-wrap canvas {
+    display: block;
+    width: 100%;
+}
+
+.btn-add-watchlist {
+    width: calc(100% - 28px);
+    margin: 12px 14px 20px;
+    padding: 10px;
+    background: transparent;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-sans);
+}
+
+.btn-add-watchlist:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.btn-add-watchlist.added {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-accent);
+}
+
+/* ============================================
+   Watchlist FAB & Panel
+   ============================================ */
+.watchlist-fab {
+    position: fixed;
+    bottom: 56px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    z-index: 400;
+    transition: transform var(--transition-fast);
+}
+
+.watchlist-fab:hover {
+    transform: scale(1.1);
+}
+
+.watchlist-fab:active {
+    transform: scale(0.95);
+}
+
+.fab-icon {
+    font-size: 20px;
+}
+
+.fab-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--color-up);
+    color: #fff;
+    font-size: 10px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+.watchlist-panel {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    background: var(--bg-secondary);
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+    z-index: 450;
+    transition: bottom var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+}
+
+.watchlist-panel.show {
+    bottom: 0;
+}
+
+.watchlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.watchlist-header h3 {
+    font-size: 15px;
+}
+
+.watchlist-close {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.watchlist-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.watchlist-empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--color-text-secondary);
+}
+
+.watchlist-empty p {
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.watchlist-hint {
+    font-size: 11px !important;
+}
+
+.watchlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.watchlist-item:hover {
+    background: var(--bg-hover);
+}
+
+.watchlist-item-left {
+    display: flex;
+    flex-direction: column;
+}
+
+.watchlist-item-name {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.watchlist-item-code {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+}
+
+.watchlist-item-right {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+}
+
+.watchlist-item-price {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+}
+
+.watchlist-item-change {
+    font-size: 11px;
+    font-family: var(--font-mono);
+}
+
+.watchlist-item-remove {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-left: 8px;
+}
+
+.watchlist-item-remove:hover {
+    color: var(--color-up);
+}
+
+/* ============================================
+   Status Bar
+   ============================================ */
+.status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--color-border);
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    z-index: 300;
+}
+
+.status-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-down);
+}
+
+.status-dot.online {
+    background: var(--color-up);
+    animation: pulse 2s infinite;
+}
+
+.status-dot.loading {
+    background: #f59e0b;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.status-center {
+    font-family: var(--font-mono);
+}
+
+.status-right {
+    font-family: var(--font-mono);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+/* Desktop */
+@media (min-width: 768px) {
+    .app-header {
+        padding: 12px 24px;
+    }
+
+    .header-title {
+        font-size: 18px;
+    }
+
+    .search-bar {
+        padding: 10px 24px;
+    }
+
+    .tab-nav {
+        padding: 0 24px;
+    }
+
+    .tab-item {
+        padding: 12px 20px;
+    }
+
+    .tab-label {
+        font-size: 14px;
+    }
+
+    .main-content {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .stock-table {
+        font-size: 13px;
+    }
+
+    .stock-table th,
+    .stock-table td {
+        padding: 10px 14px;
+    }
+
+    .filter-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .tech-indicators-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .north-flow-summary {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .detail-panel {
+        max-width: 480px;
+    }
+
+    .smart-pick-scores {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .watchlist-panel {
+        max-width: 480px;
+        left: auto;
+        right: 16px;
+        bottom: -100%;
+        border-radius: var(--radius-lg);
+        max-height: 70vh;
+    }
+
+    .watchlist-panel.show {
+        bottom: 56px;
+    }
+}
+
+/* Large Desktop */
+@media (min-width: 1200px) {
+    .stock-table-wrap {
+        overflow-x: visible;
+    }
+
+    .filter-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Small phones */
+@media (max-width: 360px) {
+    .header-title {
+        font-size: 14px;
+    }
+
+    .tab-item {
+        padding: 8px 10px;
+    }
+
+    .tab-label {
+        font-size: 12px;
+    }
+
+    .north-flow-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .smart-pick-scores {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.text-up { color: var(--color-up); }
+.text-down { color: var(--color-down); }
+.text-flat { color: var(--color-flat); }
+.text-accent { color: var(--color-accent); }
+.text-muted { color: var(--color-text-secondary); }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.text-mono { font-family: var(--font-mono); }
+.font-bold { font-weight: 600; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }

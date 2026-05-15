@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A股潜力股观察系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 顶部标题栏 -->
+    <header class="app-header">
+        <div class="header-left">
+            <span class="header-icon">📈</span>
+            <h1 class="header-title">A股潜力股观察系统</h1>
+        </div>
+        <div class="header-right">
+            <span class="market-status" id="marketStatus">--</span>
+            <span class="header-time" id="headerTime">--:--:--</span>
+        </div>
+    </header>
+
+    <!-- 搜索栏 -->
+    <div class="search-bar">
+        <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="输入股票代码或名称搜索..." autocomplete="off">
+            <span class="search-clear" id="searchClear" style="display:none;">✕</span>
+        </div>
+        <div class="search-results" id="searchResults" style="display:none;"></div>
+    </div>
+
+    <!-- Tab 导航 -->
+    <nav class="tab-nav">
+        <div class="tab-item active" data-tab="market">
+            <span class="tab-label">实时行情</span>
+        </div>
+        <div class="tab-item" data-tab="technical">
+            <span class="tab-label">技术分析</span>
+        </div>
+        <div class="tab-item" data-tab="capital">
+            <span class="tab-label">资金监控</span>
+        </div>
+        <div class="tab-item" data-tab="fundamental">
+            <span class="tab-label">基本面筛选</span>
+        </div>
+        <div class="tab-item" data-tab="smart">
+            <span class="tab-label">智能选股</span>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <!-- 实时行情 Tab -->
+        <section class="tab-panel active" id="panel-market">
+            <div class="panel-toolbar">
+                <div class="sort-controls">
+                    <span class="sort-label">排序:</span>
+                    <select id="sortField" class="sort-select">
+                        <option value="f3">涨跌幅</option>
+                        <option value="f2">最新价</option>
+                        <option value="f6">成交额</option>
+                        <option value="f5">成交量</option>
+                        <option value="f15">最高价</option>
+                        <option value="f16">最低价</option>
+                        <option value="f17">振幅</option>
+                        <option value="f8">换手率</option>
+                    </select>
+                    <button class="sort-order-btn" id="sortOrderBtn" title="切换排序方向">▼</button>
+                </div>
+                <div class="market-filter">
+                    <button class="filter-btn active" data-market="all">全部</button>
+                    <button class="filter-btn" data-market="sh">沪市</button>
+                    <button class="filter-btn" data-market="sz">深市</button>
+                </div>
+            </div>
+            <div class="stock-table-wrap">
+                <table class="stock-table">
+                    <thead>
+                        <tr>
+                            <th class="col-name">股票名称</th>
+                            <th class="col-code">代码</th>
+                            <th class="col-price">最新价</th>
+                            <th class="col-change">涨跌幅</th>
+                            <th class="col-vol">成交额</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockListBody">
+                        <tr class="loading-row">
+                            <td colspan="5">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination">
+                <button class="page-btn" id="prevPage" disabled>上一页</button>
+                <span class="page-info" id="pageInfo">1/100</span>
+                <button class="page-btn" id="nextPage">下一页</button>
+            </div>
+        </section>
+
+        <!-- 技术分析 Tab -->
+        <section class="tab-panel" id="panel-technical">
+            <div class="tech-toolbar">
+                <div class="stock-picker">
+                    <input type="text" id="techStockInput" placeholder="输入股票代码查看技术分析" value="1.600519">
+                    <button class="btn-primary" id="techStockBtn">查看</button>
+                </div>
+                <div class="period-selector">
+                    <button class="period-btn active" data-period="101">日K</button>
+                    <button class="period-btn" data-period="102">周K</button>
+                    <button class="period-btn" data-period="103">月K</button>
+                </div>
+            </div>
+            <div class="tech-info-bar" id="techInfoBar">
+                <span id="techStockName">--</span>
+                <span id="techStockPrice">--</span>
+                <span id="techStockChange">--</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="klineCanvas"></canvas>
+            </div>
+            <div class="indicator-legend" id="indicatorLegend">
+                <span class="legend-item" style="color:#f5c842;">MA5: --</span>
+                <span class="legend-item" style="color:#4dc9f6;">MA10: --</span>
+                <span class="legend-item" style="color:#f67280;">MA20: --</span>
+                <span class="legend-item" style="color:#a78bfa;">MA60: --</span>
+            </div>
+            <div class="tech-summary" id="techSummary">
+                <h3>技术指标概览</h3>
+                <div class="tech-indicators-grid" id="techIndicatorsGrid">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 资金监控 Tab -->
+        <section class="tab-panel" id="panel-capital">
+            <div class="capital-header">
+                <h3>北向资金流向</h3>
+                <div class="north-flow-summary" id="northFlowSummary">
+                    <div class="flow-card">
+                        <span class="flow-label">沪股通净流入</span>
+                        <span class="flow-value" id="shFlow">--</span>
+                    </div>
+                    <div class="flow-card">
+                        <span class="flow-label">深股通净流入</span>
+                        <span class="flow-value" id="szFlow">--</span>
+                    </div>
+                    <div class="flow-card">
+                        <span class="flow-label">北向合计</span>
+                        <span class="flow-value" id="totalFlow">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container chart-small">
+                <canvas id="northFlowCanvas"></canvas>
+            </div>
+            <div class="capital-stock-section">
+                <h3>个股资金流向</h3>
+                <div class="capital-stock-picker">
+                    <input type="text" id="capitalStockInput" placeholder="输入股票代码" value="1.600519">
+                    <button class="btn-primary" id="capitalStockBtn">查询</button>
+                </div>
+                <div class="fund-flow-summary" id="fundFlowSummary">
+                    <div class="flow-detail-card">
+                        <span class="flow-label">主力净流入</span>
+                        <span class="flow-value" id="mainForceFlow">--</span>
+                    </div>
+                    <div class="flow-detail-card">
+                        <span class="flow-label">超大单净流入</span>
+                        <span class="flow-value" id="superLargeFlow">--</span>
+                    </div>
+                    <div class="flow-detail-card">
+                        <span class="flow-label">大单净流入</span>
+                        <span class="flow-value" id="largeFlow">--</span>
+                    </div>
+                    <div class="flow-detail-card">
+                        <span class="flow-label">中单净流入</span>
+                        <span class="flow-value" id="mediumFlow">--</span>
+                    </div>
+                    <div class="flow-detail-card">
+                        <span class="flow-label">小单净流入</span>
+                        <span class="flow-value" id="smallFlow">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container chart-small">
+                <canvas id="fundFlowCanvas"></canvas>
+            </div>
+        </section>
+
+        <!-- 基本面筛选 Tab -->
+        <section class="tab-panel" id="panel-fundamental">
+            <div class="filter-panel">
+                <h3>基本面筛选条件</h3>
+                <div class="filter-grid">
+                    <div class="filter-item">
+                        <label>市盈率 PE</label>
+                        <div class="filter-range">
+                            <input type="number" id="peMin" placeholder="最小" value="0">
+                            <span>~</span>
+                            <input type="number" id="peMax" placeholder="最大" value="50">
+                        </div>
+                    </div>
+                    <div class="filter-item">
+                        <label>市净率 PB</label>
+                        <div class="filter-range">
+                            <input type="number" id="pbMin" placeholder="最小" value="0">
+                            <span>~</span>
+                            <input type="number" id="pbMax" placeholder="最大" value="10">
+                        </div>
+                    </div>
+                    <div class="filter-item">
+                        <label>ROE (%)</label>
+                        <div class="filter-range">
+                            <input type="number" id="roeMin" placeholder="最小" value="10">
+                            <span>~</span>
+                            <input type="number" id="roeMax" placeholder="最大" value="100">
+                        </div>
+                    </div>
+                    <div class="filter-item">
+                        <label>营收增长率 (%)</label>
+                        <div class="filter-range">
+                            <input type="number" id="revGrowthMin" placeholder="最小" value="10">
+                            <span>~</span>
+                            <input type="number" id="revGrowthMax" placeholder="最大" value="1000">
+                        </div>
+                    </div>
+                    <div class="filter-item">
+                        <label>总市值 (亿)</label>
+                        <div class="filter-range">
+                            <input type="number" id="mcapMin" placeholder="最小" value="0">
+                            <span>~</span>
+                            <input type="number" id="mcapMax" placeholder="最大" value="10000">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-primary btn-full" id="runFundamentalFilter">开始筛选</button>
+            </div>
+            <div class="filter-results">
+                <div class="results-header">
+                    <h3>筛选结果 <span id="filterResultCount">0</span> 只</h3>
+                    <select id="filterSortField" class="sort-select">
+                        <option value="score">综合评分</option>
+                        <option value="pe">市盈率</option>
+                        <option value="pb">市净率</option>
+                        <option value="roe">ROE</option>
+                        <option value="revGrowth">营收增长</option>
+                        <option value="change">涨跌幅</option>
+                    </select>
+                </div>
+                <div class="stock-table-wrap">
+                    <table class="stock-table">
+                        <thead>
+                            <tr>
+                                <th class="col-name">股票名称</th>
+                                <th class="col-code">代码</th>
+                                <th class="col-price">最新价</th>
+                                <th class="col-change">涨跌幅</th>
+                                <th class="col-score">评分</th>
+                            </tr>
+                        </thead>
+                        <tbody id="filterResultBody">
+                            <tr class="loading-row">
+                                <td colspan="5">设置条件后点击"开始筛选"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 智能选股 Tab -->
+        <section class="tab-panel" id="panel-smart">
+            <div class="smart-header">
+                <h3>智能选股系统</h3>
+                <p class="smart-desc">基于技术面、基本面、资金面、动量等多维度综合评分，为您筛选潜力股</p>
+                <button class="btn-primary btn-full" id="runSmartPick">开始智能选股</button>
+            </div>
+            <div class="smart-loading" id="smartLoading" style="display:none;">
+                <div class="spinner"></div>
+                <span>正在分析中，请稍候...</span>
+            </div>
+            <div class="smart-results" id="smartResults" style="display:none;">
+                <div class="smart-top-picks" id="smartTopPicks">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 股票详情面板 (侧滑) -->
+    <div class="detail-overlay" id="detailOverlay"></div>
+    <div class="detail-panel" id="detailPanel">
+        <div class="detail-header">
+            <div class="detail-stock-info">
+                <h2 id="detailStockName">--</h2>
+                <span class="detail-stock-code" id="detailStockCode">--</span>
+            </div>
+            <div class="detail-price-info">
+                <span class="detail-price" id="detailPrice">--</span>
+                <span class="detail-change" id="detailChange">--</span>
+            </div>
+            <button class="detail-close" id="detailClose">✕</button>
+        </div>
+        <div class="detail-body">
+            <div class="detail-section">
+                <h3>行情数据</h3>
+                <div class="detail-grid" id="detailQuoteGrid">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+            <div class="detail-section">
+                <h3>基本面数据</h3>
+                <div class="detail-grid" id="detailFundamentalGrid">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+            <div class="detail-section">
+                <h3>综合评分</h3>
+                <div class="score-gauge-wrap">
+                    <canvas id="scoreGaugeCanvas" width="200" height="120"></canvas>
+                </div>
+                <div class="score-details" id="scoreDetails">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+            <div class="detail-section">
+                <h3>K线走势</h3>
+                <div class="detail-chart-wrap">
+                    <canvas id="detailKlineCanvas"></canvas>
+                </div>
+            </div>
+            <div class="detail-section">
+                <h3>资金流向</h3>
+                <div class="detail-chart-wrap">
+                    <canvas id="detailFundFlowCanvas"></canvas>
+                </div>
+            </div>
+            <button class="btn-add-watchlist" id="btnAddWatchlist">
+                <span id="watchlistBtnText">+ 加入自选</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 自选股浮窗 -->
+    <div class="watchlist-fab" id="watchlistFab">
+        <span class="fab-icon">⭐</span>
+        <span class="fab-badge" id="watchlistBadge" style="display:none;">0</span>
+    </div>
+    <div class="watchlist-panel" id="watchlistPanel">
+        <div class="watchlist-header">
+            <h3>自选股</h3>
+            <button class="watchlist-close" id="watchlistClose">✕</button>
+        </div>
+        <div class="watchlist-body" id="watchlistBody">
+            <div class="watchlist-empty">
+                <p>暂无自选股</p>
+                <p class="watchlist-hint">点击股票详情中的"加入自选"按钮添加</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部状态栏 -->
+    <footer class="status-bar">
+        <div class="status-left">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">就绪</span>
+        </div>
+        <div class="status-center">
+            <span id="lastUpdateTime">最后更新: --</span>
+        </div>
+        <div class="status-right">
+            <span id="stockCount">共 0 只</span>
+        </div>
+    </footer>
+
+    <!-- JS 文件引用 -->
+    <script src="api.js"></script>
+    <script src="indicators.js"></script>
+    <script src="charts.js"></script>
+    <script src="screener.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
