@@ -1,64 +1,85 @@
 /**
  * A股潜力股观察系统 - 数据层
- * 多数据源支持：东方财富、新浪、腾讯、网易
+ * 通过 CORS 代理解决 HTTPS 混合内容问题
  */
 
 const API = (() => {
     'use strict';
 
-    // JSONP 请求计数器
-    let jsonpCounter = 0;
-    
+    // CORS 代理列表（按优先级排序）
+    const PROXIES = [
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?'
+    ];
+    let proxyIndex = 0;
+
     // 当前使用的数据源
     let currentDataSource = 'eastmoney';
-    
-    // 数据源配置
-    const dataSources = {
-        eastmoney: { name: '东方财富', priority: 1 },
-        sina: { name: '新浪财经', priority: 2 },
-        tencent: { name: '腾讯财经', priority: 3 },
-        netease: { name: '网易财经', priority: 4 }
-    };
+    let currentProxy = '';
 
     /**
-     * JSONP 请求封装
+     * 带代理的 fetch 请求
      */
-    function jsonpFetch(url, cbParam = 'cb', timeout = 10000) {
-        return new Promise((resolve, reject) => {
-            const callbackName = 'jsonp_cb_' + (++jsonpCounter) + '_' + Date.now();
-            const timeoutId = setTimeout(() => {
-                cleanup();
-                reject(new Error('JSONP 请求超时'));
-            }, timeout);
-
-            function cleanup() {
-                clearTimeout(timeoutId);
-                delete window[callbackName];
-                const script = document.getElementById(callbackName);
-                if (script) script.remove();
+    async function proxyFetch(url) {
+        // 先尝试直接请求（非HTTPS环境）
+        try {
+            const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+            if (res.ok) {
+                const text = await res.text();
+                currentProxy = '直连';
+                return text;
             }
+        } catch (e) {
+            // 直接请求失败，使用代理
+        }
 
-            window[callbackName] = function(data) {
-                cleanup();
-                resolve(data);
-            };
-
-            const separator = url.includes('?') ? '&' : '?';
-            const script = document.createElement('script');
-            script.id = callbackName;
-            script.src = url + separator + cbParam + '=' + callbackName;
-            script.onerror = function() {
-                cleanup();
-                reject(new Error('JSONP 加载失败'));
-            };
-            document.head.appendChild(script);
-        });
+        // 尝试各个代理
+        for (let i = 0; i < PROXIES.length; i++) {
+            const idx = (proxyIndex + i) % PROXIES.length;
+            try {
+                const proxyUrl = PROXIES[idx] + encodeURIComponent(url);
+                const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+                if (res.ok) {
+                    const text = await res.text();
+                    currentProxy = PROXIES[idx].split('//')[1].split('/')[0];
+                    proxyIndex = idx + 1;
+                    return text;
+                }
+            } catch (e) {
+                continue;
+            }
+        }
+        throw new Error('所有代理都失败');
     }
 
     /**
-     * 带重试的请求封装
+     * JSONP 请求（通过代理）
      */
-    async function fetchWithRetry(fetchFn, maxRetries = 3) {
+    async function jsonpFetch(url, cbParam = 'cb') {
+        const separator = url.includes('?') ? '&' : '?';
+        const fullUrl = url + separator + cbParam + '=callback';
+        
+        const text = await proxyFetch(fullUrl);
+        
+        // 提取 JSON 数据
+        // 格式可能是: callback({...}) 或 callback({...});
+        const jsonMatch = text.match(/callback\s*\(\s*({[\s\S]*})\s*\)/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[1]);
+        }
+        
+        // 尝试直接解析 JSON
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error('JSONP 响应解析失败');
+        }
+    }
+
+    /**
+     * 带重试的请求
+     */
+    async function fetchWithRetry(fetchFn, maxRetries = 2) {
         let lastError;
         for (let i = 0; i < maxRetries; i++) {
             try {
@@ -69,44 +90,31 @@ const API = (() => {
             } catch (e) {
                 lastError = e;
                 console.warn(`请求失败，重试 ${i + 1}/${maxRetries}:`, e.message);
-                await sleep(500 * (i + 1));
+                await new Promise(r => setTimeout(r, 500 * (i + 1)));
             }
         }
         throw lastError || new Error('所有重试都失败');
     }
 
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    /**
-     * 获取当前数据源名称
-     */
     function getCurrentDataSource() {
-        return dataSources[currentDataSource]?.name || '未知';
+        return currentDataSource === 'eastmoney' ? '东方财富' : 
+               currentDataSource === 'sina' ? '新浪财经' : 
+               currentDataSource === 'netease' ? '网易财经' : '未知';
     }
 
-    /**
-     * 切换数据源
-     */
-    function switchDataSource(source) {
-        if (dataSources[source]) {
-            currentDataSource = source;
-            console.log(`切换到数据源: ${dataSources[source].name}`);
-            return true;
-        }
-        return false;
+    function getCurrentProxy() {
+        return currentProxy || '直连';
     }
 
     // ==================== 东方财富 API ====================
-    
+
     async function fetchStockListEastmoney(page = 1, pageSize = 30, sortField = 'f3', sortOrder = 0, market = 'all') {
         let fs = 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23';
         if (market === 'sh') fs = 'm:1+t:2,m:1+t:23';
         else if (market === 'sz') fs = 'm:0+t:6,m:0+t:80';
 
-        const fields = 'f2,f3,f4,f5,f6,f7,f8,f9,f10,f12,f14,f15,f16,f17,f18,f20,f21,f23,f24,f25,f26,f22,f11,f62,f115,f128,f136,f140,f141,f152,f162,f164,f167,f168,f169,f170,f171,f173,f183,f184,f185,f186,f187,f188,f189,f190,f191,f192';
-        const url = `https://push2.eastmoney.com/api/qt/clist/get?pn=${page}&pz=${pageSize}&po=1&np=1&fltt=2&invt=2&fid=${sortField}&fs=${encodeURIComponent(fs)}&fields=${fields}&_${Date.now()}`;
+        const fields = 'f2,f3,f4,f5,f6,f7,f8,f9,f10,f12,f14,f15,f16,f17,f18,f20,f21,f23,f62,f115,f162,f164,f167,f168,f169,f170';
+        const url = `https://push2.eastmoney.com/api/qt/clist/get?pn=${page}&pz=${pageSize}&po=1&np=1&fltt=2&invt=2&fid=${sortField}&fs=${encodeURIComponent(fs)}&fields=${fields}&cb=callback`;
 
         const data = await jsonpFetch(url);
         if (data?.data?.diff) {
@@ -119,108 +127,11 @@ const API = (() => {
         throw new Error('东方财富数据格式错误');
     }
 
-    // ==================== 新浪 API ====================
-    
-    async function fetchStockListSina(page = 1, pageSize = 30) {
-        // 新浪使用不同的分页方式，这里获取沪深A股列表
-        const url = `https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData?symbol=sh000001&scale=240&ma=5&datalen=1&_${Date.now()}`;
-        
-        // 新浪的列表API需要特殊处理，使用其股票列表服务
-        const listUrl = `https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${page}&num=${pageSize}&node=hs_a&sort=changepercent&asc=0&_${Date.now()}`;
-        
-        try {
-            const data = await jsonpFetch(listUrl, 'callback');
-            if (Array.isArray(data)) {
-                return {
-                    total: data.length * 10, // 估算总数
-                    stocks: data.map(item => ({
-                        code: item.code,
-                        name: item.name,
-                        price: parseFloat(item.trade) || 0,
-                        changePercent: parseFloat(item.changepercent) || 0,
-                        changeAmount: parseFloat(item.pricechange) || 0,
-                        volume: parseFloat(item.volume) || 0,
-                        turnover: parseFloat(item.amount) || 0,
-                        high: parseFloat(item.high) || 0,
-                        low: parseFloat(item.low) || 0,
-                        open: parseFloat(item.open) || 0,
-                        prevClose: parseFloat(item.settlement) || 0,
-                        pe: parseFloat(item.per) || null,
-                        pb: parseFloat(item.pb) || null,
-                        totalMarketCap: parseFloat(item.mktcap) * 10000 || 0, // 万转元
-                        circulatingMarketCap: parseFloat(item.nmc) * 10000 || 0,
-                        turnoverRate: parseFloat(item.turnoverratio) || 0,
-                        secid: item.code.startsWith('6') ? '1.' + item.code : '0.' + item.code,
-                        marketCode: item.code.startsWith('6') ? '1' : '0',
-                        roe: null, // 新浪不提供
-                        revenueGrowth: null,
-                        source: 'sina'
-                    })),
-                    source: 'sina'
-                };
-            }
-        } catch (e) {
-            console.error('新浪API失败:', e);
-        }
-        throw new Error('新浪数据获取失败');
-    }
-
-    // ==================== 腾讯 API ====================
-    
-    async function fetchStockListTencent(codes) {
-        // 腾讯支持批量查询，但一次最多60只
-        if (!Array.isArray(codes)) {
-            codes = ['000001', '000002', '600519', '000858', '002594', '300750'];
-        }
-        const codeStr = codes.map(c => c.startsWith('6') ? 'sh' + c : 'sz' + c).join(',');
-        const url = `https://qt.gtimg.cn/q=${codeStr}`;
-        
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = url;
-            script.onload = () => {
-                const stocks = [];
-                codes.forEach(code => {
-                    const varName = 'v_' + (code.startsWith('6') ? 'sh' + code : 'sz' + code);
-                    const data = window[varName];
-                    if (data) {
-                        const parts = data.split('~');
-                        stocks.push({
-                            code: code,
-                            name: parts[1] || '',
-                            price: parseFloat(parts[3]) || 0,
-                            changePercent: parseFloat(parts[5]) || 0,
-                            changeAmount: parseFloat(parts[4]) || 0,
-                            volume: parseFloat(parts[6]) || 0,
-                            turnover: parseFloat(parts[7]) || 0,
-                            high: parseFloat(parts[33]) || 0,
-                            low: parseFloat(parts[34]) || 0,
-                            open: parseFloat(parts[5]) || 0,
-                            prevClose: parseFloat(parts[4]) || 0,
-                            pe: parseFloat(parts[39]) || null,
-                            pb: parseFloat(parts[46]) || null,
-                            totalMarketCap: parseFloat(parts[44]) * 10000 || 0,
-                            circulatingMarketCap: parseFloat(parts[45]) * 10000 || 0,
-                            turnoverRate: parseFloat(parts[38]) || 0,
-                            secid: code.startsWith('6') ? '1.' + code : '0.' + code,
-                            marketCode: code.startsWith('6') ? '1' : '0',
-                            source: 'tencent'
-                        });
-                    }
-                });
-                resolve({ total: stocks.length, stocks, source: 'tencent' });
-            };
-            script.onerror = () => reject(new Error('腾讯API加载失败'));
-            document.head.appendChild(script);
-        });
-    }
-
     // ==================== 网易 API ====================
-    
+
     async function fetchStockListNetease(page = 1, pageSize = 30) {
-        // 网易财经API
-        const url = `https://quotes.money.163.com/hs/service/diyrank.php?page=${page - 1}&query=STYPE:EQA&fields=SYMBOL,NAME,PRICE,UPDOWN,PERCENT,VOLUME,TURNOVER,PE,PB,MCAP&sort=PERCENT&order=desc&count=${pageSize}&_=${Date.now()}`;
-        
+        const url = `https://quotes.money.163.com/hs/service/diyrank.php?page=${page - 1}&query=STYPE:EQA&fields=SYMBOL,NAME,PRICE,UPDOWN,PERCENT,VOLUME,TURNOVER,PE,PB,MCAP&sort=PERCENT&order=desc&count=${pageSize}&callback=callback`;
+
         const data = await jsonpFetch(url, 'callback');
         if (data?.list) {
             return {
@@ -236,8 +147,8 @@ const API = (() => {
                     pe: item.PE || null,
                     pb: item.PB || null,
                     totalMarketCap: item.MCAP || 0,
-                    secid: item.SYMBOL.startsWith('6') ? '1.' + item.SYMBOL : '0.' + item.SYMBOL,
-                    marketCode: item.SYMBOL.startsWith('6') ? '1' : '0',
+                    secid: item.SYMBOL?.startsWith('6') ? '1.' + item.SYMBOL : '0.' + item.SYMBOL,
+                    marketCode: item.SYMBOL?.startsWith('6') ? '1' : '0',
                     source: 'netease'
                 })),
                 source: 'netease'
@@ -249,49 +160,35 @@ const API = (() => {
     // ==================== 统一接口 ====================
 
     async function fetchStockList(page = 1, pageSize = 30, sortField = 'f3', sortOrder = 0, market = 'all') {
-        const errors = [];
-        
-        // 按优先级尝试各个数据源
-        const sources = ['eastmoney', 'sina', 'netease'];
-        
+        const sources = [
+            { name: 'eastmoney', fn: () => fetchStockListEastmoney(page, pageSize, sortField, sortOrder, market) },
+            { name: 'netease', fn: () => fetchStockListNetease(page, pageSize) }
+        ];
+
         for (const source of sources) {
             try {
-                let result;
-                switch (source) {
-                    case 'eastmoney':
-                        result = await fetchWithRetry(() => fetchStockListEastmoney(page, pageSize, sortField, sortOrder, market), 2);
-                        break;
-                    case 'sina':
-                        result = await fetchWithRetry(() => fetchStockListSina(page, pageSize), 2);
-                        break;
-                    case 'netease':
-                        result = await fetchWithRetry(() => fetchStockListNetease(page, pageSize), 2);
-                        break;
-                }
-                
-                if (result && result.stocks && result.stocks.length > 0) {
-                    currentDataSource = source;
-                    console.log(`使用数据源: ${dataSources[source].name}, 获取 ${result.stocks.length} 条数据`);
+                const result = await fetchWithRetry(source.fn, 2);
+                if (result?.stocks?.length > 0) {
+                    currentDataSource = source.name;
+                    console.log(`✅ 数据源: ${source.name}, ${result.stocks.length} 条数据, 代理: ${currentProxy}`);
                     return result;
                 }
             } catch (e) {
-                errors.push(`${source}: ${e.message}`);
-                console.warn(`${source} 失败:`, e.message);
+                console.warn(`❌ ${source.name} 失败:`, e.message);
             }
         }
-        
-        // 所有数据源都失败，返回空数据
-        console.error('所有数据源都失败:', errors);
-        return { total: 0, stocks: [], source: 'none', errors };
+
+        console.error('所有数据源都失败');
+        return { total: 0, stocks: [], source: 'none' };
     }
 
     /**
-     * 解析单条股票数据（东方财富格式）
+     * 解析股票数据
      */
     function parseStockItem(item) {
         const needDivide = item.f2 > 10000;
         const divisor = needDivide ? 100 : 1;
-        
+
         return {
             code: item.f12 || '',
             name: item.f14 || '',
@@ -319,11 +216,7 @@ const API = (() => {
             profitGrowth: item.f185 != null ? item.f185 / 100 : null,
             grossMargin: item.f186 != null ? item.f186 / 100 : null,
             netMargin: item.f187 != null ? item.f187 / 100 : null,
-            debtRatio: item.f188 != null ? item.f188 / 100 : null,
-            currentRatio: item.f189 != null ? item.f189 / 100 : null,
             mainForceNetInflow: item.f62 || 0,
-            superLargeNetInflow: item.f184 || 0,
-            largeNetInflow: item.f62 || 0,
             _raw: item,
             source: 'eastmoney'
         };
@@ -333,22 +226,19 @@ const API = (() => {
      * 获取单只股票详情
      */
     async function fetchStockDetail(secid) {
-        const fields = 'f43,f44,f45,f46,f47,f48,f50,f51,f52,f55,f57,f58,f59,f60,f71,f84,f85,f92,f105,f116,f117,f162,f164,f167,f168,f169,f170,f171,f173,f183,f184,f185,f186,f187,f188,f189,f190,f191,f192,f292';
-        const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=${fields}&fltt=2&invt=2&_${Date.now()}`;
+        const fields = 'f43,f44,f45,f46,f47,f48,f57,f58,f60,f116,f117,f162,f164,f167,f168,f169,f170,f183,f184,f185,f186,f187,f190,f192';
+        const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=${fields}&fltt=2&invt=2&cb=callback`;
 
         try {
             const data = await jsonpFetch(url);
             if (data?.data) {
                 const d = data.data;
                 return {
-                    code: d.f57 || '',
-                    name: d.f58 || '',
-                    secid: secid,
+                    code: d.f57 || '', name: d.f58 || '', secid,
                     price: d.f43 != null ? d.f43 / 100 : null,
                     changePercent: d.f170 != null ? d.f170 / 100 : null,
                     changeAmount: d.f169 != null ? d.f169 / 100 : null,
-                    volume: d.f47 || 0,
-                    turnover: d.f48 || 0,
+                    volume: d.f47 || 0, turnover: d.f48 || 0,
                     high: d.f44 != null ? d.f44 / 100 : null,
                     low: d.f45 != null ? d.f45 / 100 : null,
                     open: d.f46 != null ? d.f46 / 100 : null,
@@ -363,9 +253,7 @@ const API = (() => {
                     profitGrowth: d.f185 != null ? d.f185 / 100 : null,
                     grossMargin: d.f186 != null ? d.f186 / 100 : null,
                     netMargin: d.f187 != null ? d.f187 / 100 : null,
-                    debtRatio: d.f188 != null ? d.f188 / 100 : null,
                     roe: d.f190 != null ? d.f190 / 100 : null,
-                    industry: d.f92 || '',
                     _raw: d
                 };
             }
@@ -379,67 +267,41 @@ const API = (() => {
      * 获取K线数据
      */
     async function fetchKline(secid, period = '101', limit = 120) {
-        const fields1 = 'f1,f2,f3,f4,f5,f6';
-        const fields2 = 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61';
-        const klt = period === '101' ? '101' : period === '102' ? '102' : '103';
-        const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=${fields1}&fields2=${fields2}&klt=${klt}&fqt=1&beg=0&end=20500101&lmt=${limit}&_${Date.now()}`;
+        const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=${period}&fqt=1&beg=0&end=20500101&lmt=${limit}&cb=callback`;
 
         try {
             const data = await jsonpFetch(url);
             if (data?.data?.klines) {
                 return data.data.klines.map(line => {
-                    const parts = line.split(',');
+                    const p = line.split(',');
                     return {
-                        date: parts[0],
-                        open: parseFloat(parts[1]),
-                        close: parseFloat(parts[2]),
-                        high: parseFloat(parts[3]),
-                        low: parseFloat(parts[4]),
-                        volume: parseFloat(parts[5]),
-                        turnover: parseFloat(parts[6]),
-                        amplitude: parts[7] ? parseFloat(parts[7]) : 0,
-                        changePercent: parts[8] ? parseFloat(parts[8]) : 0,
-                        changeAmount: parts[9] ? parseFloat(parts[9]) : 0,
-                        turnoverRate: parts[10] ? parseFloat(parts[10]) : 0
+                        date: p[0], open: +p[1], close: +p[2], high: +p[3], low: +p[4],
+                        volume: +p[5], turnover: +p[6], amplitude: +p[7] || 0,
+                        changePercent: +p[8] || 0, changeAmount: +p[9] || 0, turnoverRate: +p[10] || 0
                     };
                 });
             }
         } catch (e) {
-            console.error('获取K线数据失败:', e);
+            console.error('获取K线失败:', e);
         }
         return [];
     }
 
     /**
-     * 获取资金流向数据
+     * 获取资金流向
      */
     async function fetchFundFlow(secid) {
-        const url = `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?secid=${secid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65&lmt=30&klt=101&fqt=1&_${Date.now()}`;
+        const url = `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?secid=${secid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63&lmt=30&klt=101&fqt=1&cb=callback`;
 
         try {
             const data = await jsonpFetch(url);
-            if (data?.data) {
-                const klines = data.data.klines || [];
+            if (data?.data?.klines) {
                 return {
-                    flowData: klines.map(line => {
-                        const parts = line.split(',');
+                    flowData: data.data.klines.map(line => {
+                        const p = line.split(',');
                         return {
-                            date: parts[0],
-                            mainForceInflow: parseFloat(parts[1]) || 0,
-                            mainForceOutflow: parseFloat(parts[2]) || 0,
-                            mainForceNet: parseFloat(parts[3]) || 0,
-                            superLargeInflow: parseFloat(parts[4]) || 0,
-                            superLargeOutflow: parseFloat(parts[5]) || 0,
-                            superLargeNet: parseFloat(parts[6]) || 0,
-                            largeInflow: parseFloat(parts[7]) || 0,
-                            largeOutflow: parseFloat(parts[8]) || 0,
-                            largeNet: parseFloat(parts[9]) || 0,
-                            mediumInflow: parseFloat(parts[10]) || 0,
-                            mediumOutflow: parseFloat(parts[11]) || 0,
-                            mediumNet: parseFloat(parts[12]) || 0,
-                            smallInflow: parseFloat(parts[13]) || 0,
-                            smallOutflow: parseFloat(parts[14]) || 0,
-                            smallNet: parseFloat(parts[15]) || 0
+                            date: p[0], mainForceNet: +p[3] || 0, superLargeNet: +p[6] || 0,
+                            largeNet: +p[9] || 0, mediumNet: +p[12] || 0, smallNet: +p[15] || 0
                         };
                     }),
                     latestMainForceNet: data.data.f62 || 0
@@ -452,37 +314,20 @@ const API = (() => {
     }
 
     /**
-     * 获取北向资金流向
+     * 获取北向资金
      */
     async function fetchNorthFlow() {
-        const url = `https://push2his.eastmoney.com/api/qt/kamt.kline/get?fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65&klt=101&fqt=1&beg=0&end=20500101&lmt=30&_${Date.now()}`;
+        const url = `https://push2his.eastmoney.com/api/qt/kamt.kline/get?fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57&klt=101&fqt=1&beg=0&end=20500101&lmt=30&cb=callback`;
 
         try {
             const data = await jsonpFetch(url);
             if (data?.data?.klines) {
-                const klines = data.data.klines;
-                const flowData = klines.map(line => {
-                    const parts = line.split(',');
-                    return {
-                        date: parts[0],
-                        shInflow: parseFloat(parts[1]) || 0,
-                        shOutflow: parseFloat(parts[2]) || 0,
-                        shNet: parseFloat(parts[3]) || 0,
-                        szInflow: parseFloat(parts[4]) || 0,
-                        szOutflow: parseFloat(parts[5]) || 0,
-                        szNet: parseFloat(parts[6]) || 0,
-                        totalNet: parseFloat(parts[7]) || 0
-                    };
+                const flowData = data.data.klines.map(line => {
+                    const p = line.split(',');
+                    return { date: p[0], shNet: +p[3] || 0, szNet: +p[6] || 0, totalNet: +p[7] || 0 };
                 });
-
-                const latest = flowData.length > 0 ? flowData[flowData.length - 1] : null;
-                return {
-                    flowData: flowData,
-                    latest: latest,
-                    shNet: latest ? latest.shNet : 0,
-                    szNet: latest ? latest.szNet : 0,
-                    totalNet: latest ? latest.totalNet : 0
-                };
+                const latest = flowData[flowData.length - 1];
+                return { flowData, latest, shNet: latest?.shNet || 0, szNet: latest?.szNet || 0, totalNet: latest?.totalNet || 0 };
             }
         } catch (e) {
             console.error('获取北向资金失败:', e);
@@ -494,108 +339,71 @@ const API = (() => {
      * 搜索股票
      */
     async function searchStock(keyword) {
-        if (!keyword || keyword.trim().length === 0) return [];
-
-        const url = `https://searchapi.eastmoney.com/api/suggest/get?input=${encodeURIComponent(keyword.trim())}&type=14&token=D43BF722C8E33BDC906FB84D85E326E8&count=10&_${Date.now()}`;
+        if (!keyword?.trim()) return [];
+        const url = `https://searchapi.eastmoney.com/api/suggest/get?input=${encodeURIComponent(keyword.trim())}&type=14&token=D43BF722C8E33BDC906FB84D85E326E8&count=10&cb=callback`;
 
         try {
             const data = await jsonpFetch(url);
             if (data?.QuotationCodeTable?.Data) {
-                return data.QuotationCodeTable.Data.filter(item => {
-                    return item.MktNum === '0' || item.MktNum === '1';
-                }).map(item => {
-                    const mkt = item.MktNum === '1' ? '1' : '0';
-                    return {
-                        code: item.Code,
-                        name: item.Name,
-                        secid: mkt + '.' + item.Code,
-                        market: item.MktNum === '1' ? 'SH' : 'SZ'
-                    };
-                });
+                return data.QuotationCodeTable.Data
+                    .filter(i => i.MktNum === '0' || i.MktNum === '1')
+                    .map(i => ({
+                        code: i.Code, name: i.Name,
+                        secid: (i.MktNum === '1' ? '1' : '0') + '.' + i.Code,
+                        market: i.MktNum === '1' ? 'SH' : 'SZ'
+                    }));
             }
         } catch (e) {
-            console.error('搜索股票失败:', e);
+            console.error('搜索失败:', e);
         }
         return [];
     }
 
     // ==================== 格式化工具 ====================
 
-    function formatAmount(value) {
-        if (value == null || value === 0) return '--';
-        if (Math.abs(value) >= 100000000) {
-            return (value / 100000000).toFixed(2) + '亿';
-        } else if (Math.abs(value) >= 10000) {
-            return (value / 10000).toFixed(2) + '万';
-        }
-        return value.toFixed(2);
+    function formatAmount(v) {
+        if (!v) return '--';
+        if (Math.abs(v) >= 1e8) return (v / 1e8).toFixed(2) + '亿';
+        if (Math.abs(v) >= 1e4) return (v / 1e4).toFixed(2) + '万';
+        return v.toFixed(2);
     }
 
-    function formatMarketCap(value) {
-        if (value == null || value === 0) return '--';
-        return (value / 100000000).toFixed(2) + '亿';
+    function formatMarketCap(v) {
+        if (!v) return '--';
+        return (v / 1e8).toFixed(2) + '亿';
     }
 
-    function formatPercent(value, decimals = 2) {
-        if (value == null) return '--';
-        return (value > 0 ? '+' : '') + value.toFixed(decimals) + '%';
+    function formatPercent(v, d = 2) {
+        if (v == null) return '--';
+        return (v > 0 ? '+' : '') + v.toFixed(d) + '%';
     }
 
-    function formatPrice(value) {
-        if (value == null) return '--';
-        return value.toFixed(2);
+    function formatPrice(v) {
+        return v != null ? v.toFixed(2) : '--';
     }
 
-    function getPriceClass(value) {
-        if (value == null) return 'price-flat';
-        if (value > 0) return 'price-up';
-        if (value < 0) return 'price-down';
+    function getPriceClass(v) {
+        if (v == null) return 'price-flat';
+        if (v > 0) return 'price-up';
+        if (v < 0) return 'price-down';
         return 'price-flat';
     }
 
     function getMarketStatus() {
         const now = new Date();
         const day = now.getDay();
-        const hours = now.getHours();
-        const minutes = now.getMinutes();
-        const time = hours * 60 + minutes;
-
-        if (day === 0 || day === 6) {
-            return { status: 'closed', text: '休市' };
-        }
-
-        if (time >= 570 && time <= 690) {
-            return { status: 'open', text: '交易中' };
-        }
-        if (time >= 780 && time <= 900) {
-            return { status: 'open', text: '交易中' };
-        }
-        if (time >= 555 && time < 570) {
-            return { status: 'open', text: '集合竞价' };
-        }
-        if (time > 690 && time < 780) {
-            return { status: 'open', text: '午间休市' };
-        }
-
+        const t = now.getHours() * 60 + now.getMinutes();
+        if (day === 0 || day === 6) return { status: 'closed', text: '休市' };
+        if (t >= 570 && t <= 690) return { status: 'open', text: '交易中' };
+        if (t >= 780 && t <= 900) return { status: 'open', text: '交易中' };
+        if (t >= 555 && t < 570) return { status: 'open', text: '集合竞价' };
+        if (t > 690 && t < 780) return { status: 'open', text: '午间休市' };
         return { status: 'closed', text: '已收盘' };
     }
 
     return {
-        jsonpFetch,
-        fetchStockList,
-        fetchStockDetail,
-        fetchKline,
-        fetchFundFlow,
-        fetchNorthFlow,
-        searchStock,
-        formatAmount,
-        formatMarketCap,
-        formatPercent,
-        formatPrice,
-        getPriceClass,
-        getMarketStatus,
-        getCurrentDataSource,
-        switchDataSource,
-        dataSources
+        fetchStockList, fetchStockDetail, fetchKline, fetchFundFlow, fetchNorthFlow, searchStock,
+        formatAmount, formatMarketCap, formatPercent, formatPrice, getPriceClass, getMarketStatus,
+        getCurrentDataSource, getCurrentProxy
     };
 })();
