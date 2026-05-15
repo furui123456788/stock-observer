@@ -273,6 +273,23 @@ const App = (() => {
     }
 
     /**
+     * 更新数据时间显示
+     */
+    function updateDataTime() {
+        const now = new Date();
+        const timeStr = now.toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        if (dom.lastUpdateTime) {
+            dom.lastUpdateTime.textContent = `更新时间：${timeStr}`;
+        }
+    }
+
+    /**
      * 设置状态
      */
     function setStatus(text, type = 'idle') {
@@ -302,9 +319,7 @@ const App = (() => {
             renderStockList();
             updatePagination();
             updateStockCount();
-
-            const now = new Date();
-            dom.lastUpdateTime.textContent = `最后更新: ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            updateDataTime();
             setStatus('就绪', 'online');
         } catch (e) {
             dom.stockListBody.innerHTML = '<tr class="loading-row"><td colspan="5">加载失败，请重试</td></tr>';
