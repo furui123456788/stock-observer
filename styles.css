@@ -1118,12 +1118,13 @@ body {
     border-color: var(--color-accent);
 }
 
-/* 增强版智能选股卡片 */
+/* 智能选股卡片 - 全新设计 */
 .smart-pick-card {
     background: var(--bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
     cursor: pointer;
     transition: all var(--transition-fast);
 }
@@ -1133,120 +1134,181 @@ body {
     box-shadow: var(--shadow-md);
 }
 
-/* 卡片头部：名称 + 评分 */
+/* 卡片头部 */
 .smart-pick-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+}
+
+.smart-pick-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.smart-pick-rank {
+    font-size: 16px;
 }
 
 .smart-pick-name {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
+    color: var(--color-text-primary);
 }
 
 .smart-pick-code {
     font-size: 11px;
     color: var(--color-text-secondary);
     font-family: var(--font-mono);
-    margin-left: 8px;
-}
-
-.smart-pick-score {
-    font-size: 20px;
-    font-weight: 700;
-    font-family: var(--font-mono);
-}
-
-/* 价格和涨跌信息 */
-.smart-pick-price-row {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 10px;
-}
-
-.smart-pick-price {
-    font-size: 18px;
-    font-weight: 700;
-    font-family: var(--font-mono);
-}
-
-.smart-pick-change {
-    font-size: 13px;
-    font-family: var(--font-mono);
-}
-
-/* 基本面数据行 */
-.smart-pick-fundamentals {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.smart-pick-fundamental-item {
-    text-align: center;
-    padding: 6px 4px;
     background: var(--bg-primary);
+    padding: 2px 6px;
     border-radius: var(--radius-sm);
 }
 
-.smart-pick-fundamental-label {
+.smart-pick-score-wrap {
+    text-align: right;
+}
+
+.smart-pick-score-label {
     font-size: 10px;
     color: var(--color-text-secondary);
     display: block;
     margin-bottom: 2px;
 }
 
-.smart-pick-fundamental-value {
+.smart-pick-score {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+/* 价格区域 */
+.smart-pick-price-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.smart-pick-main-price {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.smart-pick-price {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.smart-pick-change {
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+.smart-pick-change-amount {
     font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--color-text-secondary);
+}
+
+.smart-pick-market-cap {
+    text-align: right;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+/* 核心指标网格 - 6列 */
+.smart-pick-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.smart-pick-metric {
+    text-align: center;
+    padding: 8px 4px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: border-color var(--transition-fast);
+}
+
+.smart-pick-metric:hover {
+    border-color: var(--color-border-hover);
+}
+
+.smart-pick-metric-label {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    display: block;
+    margin-bottom: 3px;
+}
+
+.smart-pick-metric-value {
+    font-size: 13px;
     font-family: var(--font-mono);
     font-weight: 600;
     display: block;
 }
 
-.smart-pick-fundamental-value.highlight-up {
+.smart-pick-metric-value.highlight-up,
+.smart-pick-metric-value.up {
     color: var(--color-up);
 }
 
-.smart-pick-fundamental-value.highlight-down {
+.smart-pick-metric-value.highlight-down,
+.smart-pick-metric-value.down {
     color: var(--color-down);
 }
 
-/* 迷你走势图 */
-.smart-pick-chart {
-    height: 50px;
-    margin: 10px 0;
+/* 迷你走势图容器 */
+.smart-pick-chart-container {
+    height: 60px;
+    margin: 12px 0;
     background: var(--bg-primary);
     border-radius: var(--radius-sm);
+    position: relative;
+    overflow: hidden;
 }
 
-.smart-pick-chart canvas {
+.smart-pick-chart-canvas {
     width: 100%;
     height: 100%;
+    display: block;
 }
 
-/* 原有的标签样式 */
-.smart-pick-price-info {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 10px;
-    font-family: var(--font-mono);
-    font-size: 12px;
+.smart-pick-chart-label {
+    position: absolute;
+    bottom: 4px;
+    left: 6px;
+    font-size: 9px;
+    color: var(--color-text-tertiary);
+    background: rgba(22, 27, 34, 0.8);
+    padding: 1px 4px;
+    border-radius: 3px;
 }
 
+/* 选股理由标签 */
 .smart-pick-reasons {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    margin-bottom: 12px;
 }
 
 .smart-pick-reason {
     font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 3px 10px;
+    border-radius: 12px;
     background: rgba(59, 130, 246, 0.15);
     color: var(--color-accent);
     border: 1px solid rgba(59, 130, 246, 0.3);
@@ -1264,32 +1326,37 @@ body {
     border-color: rgba(34, 197, 94, 0.3);
 }
 
-.smart-pick-scores {
+/* 四维评分进度条 */
+.smart-pick-dimension-scores {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    margin-top: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
 }
 
-.smart-pick-sub-score {
-    text-align: center;
-    padding: 6px;
+.smart-pick-dimension {
     background: var(--bg-primary);
     border-radius: var(--radius-sm);
+    padding: 8px;
+    position: relative;
+    overflow: hidden;
 }
 
-.smart-pick-sub-score-label {
-    font-size: 10px;
+.smart-pick-dimension-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    opacity: 0.15;
+    transition: width 0.5s ease;
+}
+
+.smart-pick-dimension-label {
+    position: relative;
+    z-index: 1;
+    font-size: 11px;
     color: var(--color-text-secondary);
     display: block;
-    margin-bottom: 2px;
-}
-
-.smart-pick-sub-score-value {
-    font-size: 13px;
-    font-family: var(--font-mono);
-    font-weight: 600;
-    display: block;
+    text-align: center;
 }
 
 /* ============================================

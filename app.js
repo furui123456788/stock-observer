@@ -217,20 +217,22 @@ const App = (() => {
         document.querySelectorAll('.period-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 const period = tab.dataset.period;
+                state.smartPeriod = period;
                 document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 // 重新渲染走势图
-                document.querySelectorAll('.smart-pick-card').forEach(card => {
-                    const canvas = card.querySelector('canvas');
-                    if (canvas) {
-                        try {
-                            const klines = JSON.parse(card.dataset.klines || '[]');
-                            if (klines.length > 0) {
-                                Charts.drawMiniChart(canvas, klines, period);
+                if (state.smartPicks && state.smartPicks.length > 0) {
+                    state.smartPicks.forEach(item => {
+                        const canvas = document.getElementById(`chart-${item.stock.code}`);
+                        if (canvas && item.klines && item.klines.length > 5) {
+                            try {
+                                Charts.drawMiniChart(canvas, item.klines, period);
+                            } catch (e) {
+                                console.error('重绘迷你图失败:', item.stock.code, e);
                             }
-                        } catch(e) {}
-                    }
-                });
+                        }
+                    });
+                }
             });
         });
 
@@ -861,6 +863,9 @@ const App = (() => {
             return;
         }
 
+        // 保存当前选股结果用于周期切换
+        state.smartPicks = picks;
+
         dom.smartTopPicks.innerHTML = picks.map((item, idx) => {
             const stock = item.stock;
             const priceClass = API.getPriceClass(stock.changePercent);
@@ -868,102 +873,159 @@ const App = (() => {
             const rank = idx + 1;
             const rankLabel = rank <= 3 ? ['🥇', '🥈', '🥉'][idx] : `#${rank}`;
 
-            const reasonsHtml = (item.reasons || []).slice(0, 3).map(r =>
+            const reasonsHtml = (item.reasons || []).slice(0, 4).map(r =>
                 `<span class="smart-pick-reason ${r.type}">${escapeHtml(r.text)}</span>`
             ).join('');
 
+            // 完整数据展示
+            const price = stock.price != null ? stock.price.toFixed(2) : '--';
+            const changePercent = stock.changePercent != null ? API.formatPercent(stock.changePercent) : '--';
+            const changeAmount = stock.changeAmount != null ? (stock.changeAmount > 0 ? '+' : '') + stock.changeAmount.toFixed(2) : '--';
+            
             // 基本面数据
             const peValue = stock.pe != null ? (stock.pe > 0 ? stock.pe.toFixed(1) : '亏损') : '--';
             const pbValue = stock.pb != null ? stock.pb.toFixed(2) : '--';
             const turnoverValue = stock.turnoverRate != null ? stock.turnoverRate.toFixed(2) + '%' : '--';
-            const volumeValue = stock.volumeRatio != null ? stock.volumeRatio.toFixed(2) : '--';
+            const volumeRatioValue = stock.volumeRatio != null ? stock.volumeRatio.toFixed(2) : '--';
             
-            // 市盈率颜色
+            // 市值和流通
+            const marketCap = API.formatMarketCap(stock.totalMarketCap);
+            const circulatingCap = API.formatMarketCap(stock.circulatingMarketCap || stock.totalMarketCap * 0.7);
+            
+            // 主力净流入
+            const mainForceFlow = stock.mainForceNetInflow || 0;
+            const flowText = mainForceFlow >= 100000000 ? (mainForceFlow / 100000000).toFixed(2) + '亿' : 
+                            mainForceFlow >= 10000 ? (mainForceFlow / 10000).toFixed(0) + '万' : 
+                            mainForceFlow > 0 ? mainForceFlow.toFixed(0) : '0';
+            const flowClass = mainForceFlow > 0 ? 'up' : mainForceFlow < 0 ? 'down' : '';
+            
+            // 颜色标注
             const peColor = stock.pe != null ? (stock.pe < 15 ? 'highlight-up' : stock.pe > 40 ? 'highlight-down' : '') : '';
-            // 换手率颜色
-            const turnoverColor = stock.turnoverRate != null ? (stock.turnoverRate > 5 ? 'highlight-up' : '') : '';
+            const turnoverColor = stock.turnoverRate != null ? (stock.turnoverRate > 5 ? 'highlight-up' : stock.turnoverRate < 1 ? 'highlight-down' : '') : '';
+            const volumeColor = stock.volumeRatio != null ? (stock.volumeRatio > 2 ? 'highlight-up' : stock.volumeRatio < 0.8 ? 'highlight-down' : '') : '';
+
+            // 构建secid
+            const secid = stock.secid || (stock.code?.startsWith('6') ? `1.${stock.code}` : `0.${stock.code}`);
 
             return `
-                <div class="smart-pick-card" data-secid="${stock.marketCode || ''}" data-code="${stock.code}" data-name="${stock.name}" data-klines='${JSON.stringify(item.klines || []).replace(/'/g, "\\'")}'>
+                <div class="smart-pick-card" data-secid="${secid}" data-code="${stock.code}" data-name="${stock.name}" data-idx="${idx}">
+                    <!-- 头部：排名、名称、代码、评分 -->
                     <div class="smart-pick-header">
-                        <div>
-                            <span class="smart-pick-name">${rankLabel} ${escapeHtml(stock.name)}</span>
+                        <div class="smart-pick-title">
+                            <span class="smart-pick-rank">${rankLabel}</span>
+                            <span class="smart-pick-name">${escapeHtml(stock.name)}</span>
                             <span class="smart-pick-code">${stock.code}</span>
                         </div>
-                        <span class="smart-pick-score" style="color:${scoreColor}">${item.score}</span>
-                    </div>
-                    
-                    <div class="smart-pick-price-row">
-                        <span class="smart-pick-price ${priceClass}">${stock.price != null ? stock.price.toFixed(2) : '--'}</span>
-                        <span class="smart-pick-change ${priceClass}">${stock.changePercent != null ? API.formatPercent(stock.changePercent) : '--'}</span>
-                        <span style="margin-left:auto;font-size:12px;color:var(--color-text-secondary);">市值: ${API.formatMarketCap(stock.totalMarketCap)}</span>
-                    </div>
-                    
-                    <div class="smart-pick-fundamentals">
-                        <div class="smart-pick-fundamental-item">
-                            <span class="smart-pick-fundamental-label">市盈率</span>
-                            <span class="smart-pick-fundamental-value ${peColor}">${peValue}</span>
-                        </div>
-                        <div class="smart-pick-fundamental-item">
-                            <span class="smart-pick-fundamental-label">市净率</span>
-                            <span class="smart-pick-fundamental-value">${pbValue}</span>
-                        </div>
-                        <div class="smart-pick-fundamental-item">
-                            <span class="smart-pick-fundamental-label">换手率</span>
-                            <span class="smart-pick-fundamental-value ${turnoverColor}">${turnoverValue}</span>
-                        </div>
-                        <div class="smart-pick-fundamental-item">
-                            <span class="smart-pick-fundamental-label">量比</span>
-                            <span class="smart-pick-fundamental-value">${volumeValue}</span>
+                        <div class="smart-pick-score-wrap">
+                            <span class="smart-pick-score-label">综合评分</span>
+                            <span class="smart-pick-score" style="color:${scoreColor}">${item.score}</span>
                         </div>
                     </div>
                     
-                    <div class="smart-pick-chart">
-                        <canvas id="chart-${stock.code}"></canvas>
+                    <!-- 价格信息行 -->
+                    <div class="smart-pick-price-section">
+                        <div class="smart-pick-main-price">
+                            <span class="smart-pick-price ${priceClass}">${price}</span>
+                            <span class="smart-pick-change ${priceClass}">${changePercent}</span>
+                            <span class="smart-pick-change-amount ${priceClass}">${changeAmount}</span>
+                        </div>
+                        <div class="smart-pick-market-cap">
+                            <div>总市值: ${marketCap}</div>
+                            <div>流通市值: ${circulatingCap}</div>
+                        </div>
                     </div>
                     
+                    <!-- 核心指标网格 -->
+                    <div class="smart-pick-metrics-grid">
+                        <div class="smart-pick-metric">
+                            <span class="smart-pick-metric-label">市盈率 PE</span>
+                            <span class="smart-pick-metric-value ${peColor}">${peValue}</span>
+                        </div>
+                        <div class="smart-pick-metric">
+                            <span class="smart-pick-metric-label">市净率 PB</span>
+                            <span class="smart-pick-metric-value">${pbValue}</span>
+                        </div>
+                        <div class="smart-pick-metric">
+                            <span class="smart-pick-metric-label">换手率</span>
+                            <span class="smart-pick-metric-value ${turnoverColor}">${turnoverValue}</span>
+                        </div>
+                        <div class="smart-pick-metric">
+                            <span class="smart-pick-metric-label">量比</span>
+                            <span class="smart-pick-metric-value ${volumeColor}">${volumeRatioValue}</span>
+                        </div>
+                        <div class="smart-pick-metric">
+                            <span class="smart-pick-metric-label">主力净流入</span>
+                            <span class="smart-pick-metric-value ${flowClass}">${flowText}</span>
+                        </div>
+                        <div class="smart-pick-metric">
+                            <span class="smart-pick-metric-label">成交额</span>
+                            <span class="smart-pick-metric-value">${API.formatAmount(stock.turnover || 0)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 迷你走势图 -->
+                    <div class="smart-pick-chart-container">
+                        <canvas id="chart-${stock.code}" class="smart-pick-chart-canvas"></canvas>
+                        <div class="smart-pick-chart-label">近60日走势</div>
+                    </div>
+                    
+                    <!-- 选股理由标签 -->
                     <div class="smart-pick-reasons">${reasonsHtml}</div>
                     
-                    <div class="smart-pick-scores">
-                        <div class="smart-pick-sub-score">
-                            <span class="smart-pick-sub-score-label">技术面</span>
-                            <span class="smart-pick-sub-score-value">${item.techScore}</span>
+                    <!-- 四维评分 -->
+                    <div class="smart-pick-dimension-scores">
+                        <div class="smart-pick-dimension">
+                            <div class="smart-pick-dimension-bar" style="width:${item.techScore}%;background:${getScoreColor(item.techScore)}"></div>
+                            <span class="smart-pick-dimension-label">技术 ${item.techScore}</span>
                         </div>
-                        <div class="smart-pick-sub-score">
-                            <span class="smart-pick-sub-score-label">基本面</span>
-                            <span class="smart-pick-sub-score-value">${item.fundScore}</span>
+                        <div class="smart-pick-dimension">
+                            <div class="smart-pick-dimension-bar" style="width:${item.fundScore}%;background:${getScoreColor(item.fundScore)}"></div>
+                            <span class="smart-pick-dimension-label">基本面 ${item.fundScore}</span>
                         </div>
-                        <div class="smart-pick-sub-score">
-                            <span class="smart-pick-sub-score-label">资金面</span>
-                            <span class="smart-pick-sub-score-value">${item.capitalScore}</span>
+                        <div class="smart-pick-dimension">
+                            <div class="smart-pick-dimension-bar" style="width:${item.capitalScore}%;background:${getScoreColor(item.capitalScore)}"></div>
+                            <span class="smart-pick-dimension-label">资金 ${item.capitalScore}</span>
                         </div>
-                        <div class="smart-pick-sub-score">
-                            <span class="smart-pick-sub-score-label">动量</span>
-                            <span class="smart-pick-sub-score-value">${item.momentumScore}</span>
+                        <div class="smart-pick-dimension">
+                            <div class="smart-pick-dimension-bar" style="width:${item.momentumScore}%;background:${getScoreColor(item.momentumScore)}"></div>
+                            <span class="smart-pick-dimension-label">动量 ${item.momentumScore}</span>
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
 
+        // 绑定点击事件
         dom.smartTopPicks.querySelectorAll('.smart-pick-card').forEach(card => {
-            card.addEventListener('click', () => {
+            card.addEventListener('click', (e) => {
+                // 如果点击的是canvas，不触发详情
+                if (e.target.tagName === 'CANVAS') return;
                 const secid = card.dataset.secid;
                 if (secid) openDetail(secid, card.dataset.name, card.dataset.code);
             });
         });
 
         // 绘制迷你走势图
-        setTimeout(() => {
-            picks.forEach(item => {
-                if (item.klines && item.klines.length > 0) {
-                    const canvas = document.getElementById(`chart-${item.stock.code}`);
-                    if (canvas) {
-                        Charts.drawMiniChart(canvas, item.klines);
+        requestAnimationFrame(() => {
+            picks.forEach((item, idx) => {
+                const canvas = document.getElementById(`chart-${item.stock.code}`);
+                if (canvas && item.klines && item.klines.length > 5) {
+                    try {
+                        Charts.drawMiniChart(canvas, item.klines, state.smartPeriod || 'day');
+                    } catch (e) {
+                        console.error('绘制迷你图失败:', item.stock.code, e);
                     }
                 }
             });
-        }, 100);
+        });
+    }
+
+    // 辅助函数：根据分数获取颜色
+    function getScoreColor(score) {
+        if (score >= 70) return '#22c55e';
+        if (score >= 50) return '#3b82f6';
+        if (score >= 30) return '#f59e0b';
+        return '#ef4444';
     }
 
     /**
