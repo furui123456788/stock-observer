@@ -733,11 +733,106 @@ const Charts = (() => {
         ctx.fillText('100', centerX + radius + 5, centerY + 14);
     }
 
+    /**
+     * 绘制迷你走势图（用于智能选股卡片）
+     * @param {HTMLCanvasElement} canvas
+     * @param {Array} klines - K线数据
+     * @param {string} period - 'day'|'week'|'month'
+     */
+    function drawMiniChart(canvas, klines, period = 'day') {
+        if (!klines || klines.length < 5) return;
+
+        const container = canvas.parentElement;
+        const width = container.clientWidth || 300;
+        const height = container.clientHeight || 50;
+        const dpr = window.devicePixelRatio || 1;
+        
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        // 取最近60个数据点
+        const data = klines.slice(-60);
+        if (data.length < 5) return;
+
+        // 提取收盘价
+        const closes = data.map(k => k.close);
+        
+        // 计算价格范围
+        const minPrice = Math.min(...closes);
+        const maxPrice = Math.max(...closes);
+        const priceRange = maxPrice - minPrice || 1;
+        
+        // 判断涨跌
+        const firstPrice = closes[0];
+        const lastPrice = closes[closes.length - 1];
+        const isUp = lastPrice >= firstPrice;
+        const lineColor = isUp ? COLORS.up : COLORS.down;
+        const fillColor = isUp ? COLORS.upFill.replace('0.8', '0.2') : COLORS.downFill.replace('0.8', '0.2');
+        
+        // 计算价格百分比变化
+        const changePercent = ((lastPrice - firstPrice) / firstPrice * 100).toFixed(2);
+        const changeText = (changePercent >= 0 ? '+' : '') + changePercent + '%';
+
+        // 绘制区域
+        const padding = { left: 4, right: 4, top: 4, bottom: 4 };
+        const chartWidth = width - padding.left - padding.right;
+        const chartHeight = height - padding.top - padding.bottom;
+
+        // 计算每个点的位置
+        const points = [];
+        closes.forEach((price, i) => {
+            const x = padding.left + (i / (closes.length - 1)) * chartWidth;
+            const y = padding.top + (1 - (price - minPrice) / priceRange) * chartHeight;
+            points.push({ x, y });
+        });
+
+        // 绘制填充区域
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, height - padding.bottom);
+        points.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(points[points.length - 1].x, height - padding.bottom);
+        ctx.closePath();
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+
+        // 绘制线条
+        ctx.beginPath();
+        points.forEach((p, i) => {
+            if (i === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+        });
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // 绘制末端点
+        const lastPoint = points[points.length - 1];
+        ctx.beginPath();
+        ctx.arc(lastPoint.x, lastPoint.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = lineColor;
+        ctx.fill();
+
+        // 绘制涨跌幅标签
+        ctx.fillStyle = lineColor;
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText(changeText, width - padding.right - 2, padding.top + 2);
+    }
+
     return {
         drawKlineChart,
         drawFundFlowChart,
         drawNorthFlowChart,
         drawScoreGauge,
+        drawMiniChart,
         COLORS,
         setupCanvas
     };

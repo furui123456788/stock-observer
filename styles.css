@@ -1093,6 +1093,205 @@ body {
     display: block;
 }
 
+/* 智能选股周期切换标签 */
+.smart-period-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.period-tab {
+    padding: 6px 16px;
+    border: 1px solid var(--color-border);
+    background: var(--bg-secondary);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.period-tab.active {
+    background: var(--color-accent);
+    color: white;
+    border-color: var(--color-accent);
+}
+
+/* 增强版智能选股卡片 */
+.smart-pick-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.smart-pick-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-md);
+}
+
+/* 卡片头部：名称 + 评分 */
+.smart-pick-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.smart-pick-name {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.smart-pick-code {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    margin-left: 8px;
+}
+
+.smart-pick-score {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+/* 价格和涨跌信息 */
+.smart-pick-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.smart-pick-price {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.smart-pick-change {
+    font-size: 13px;
+    font-family: var(--font-mono);
+}
+
+/* 基本面数据行 */
+.smart-pick-fundamentals {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.smart-pick-fundamental-item {
+    text-align: center;
+    padding: 6px 4px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+}
+
+.smart-pick-fundamental-label {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.smart-pick-fundamental-value {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    display: block;
+}
+
+.smart-pick-fundamental-value.highlight-up {
+    color: var(--color-up);
+}
+
+.smart-pick-fundamental-value.highlight-down {
+    color: var(--color-down);
+}
+
+/* 迷你走势图 */
+.smart-pick-chart {
+    height: 50px;
+    margin: 10px 0;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+}
+
+.smart-pick-chart canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* 原有的标签样式 */
+.smart-pick-price-info {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.smart-pick-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.smart-pick-reason {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--color-accent);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.smart-pick-reason.positive {
+    background: var(--color-up-bg);
+    color: var(--color-up);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.smart-pick-reason.negative {
+    background: var(--color-down-bg);
+    color: var(--color-down);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.smart-pick-scores {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.smart-pick-sub-score {
+    text-align: center;
+    padding: 6px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+}
+
+.smart-pick-sub-score-label {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.smart-pick-sub-score-value {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    display: block;
+}
+
 /* ============================================
    Detail Panel (Slide-in)
    ============================================ */

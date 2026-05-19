@@ -212,6 +212,27 @@ const App = (() => {
 
         // 智能选股
         dom.runSmartPick.addEventListener('click', runSmartPicks);
+        
+        // 智能选股周期切换
+        document.querySelectorAll('.period-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const period = tab.dataset.period;
+                document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // 重新渲染走势图
+                document.querySelectorAll('.smart-pick-card').forEach(card => {
+                    const canvas = card.querySelector('canvas');
+                    if (canvas) {
+                        try {
+                            const klines = JSON.parse(card.dataset.klines || '[]');
+                            if (klines.length > 0) {
+                                Charts.drawMiniChart(canvas, klines, period);
+                            }
+                        } catch(e) {}
+                    }
+                });
+            });
+        });
 
         // 详情面板
         dom.detailOverlay.addEventListener('click', closeDetail);
@@ -847,12 +868,23 @@ const App = (() => {
             const rank = idx + 1;
             const rankLabel = rank <= 3 ? ['🥇', '🥈', '🥉'][idx] : `#${rank}`;
 
-            const reasonsHtml = (item.reasons || []).map(r =>
+            const reasonsHtml = (item.reasons || []).slice(0, 3).map(r =>
                 `<span class="smart-pick-reason ${r.type}">${escapeHtml(r.text)}</span>`
             ).join('');
 
+            // 基本面数据
+            const peValue = stock.pe != null ? (stock.pe > 0 ? stock.pe.toFixed(1) : '亏损') : '--';
+            const pbValue = stock.pb != null ? stock.pb.toFixed(2) : '--';
+            const turnoverValue = stock.turnoverRate != null ? stock.turnoverRate.toFixed(2) + '%' : '--';
+            const volumeValue = stock.volumeRatio != null ? stock.volumeRatio.toFixed(2) : '--';
+            
+            // 市盈率颜色
+            const peColor = stock.pe != null ? (stock.pe < 15 ? 'highlight-up' : stock.pe > 40 ? 'highlight-down' : '') : '';
+            // 换手率颜色
+            const turnoverColor = stock.turnoverRate != null ? (stock.turnoverRate > 5 ? 'highlight-up' : '') : '';
+
             return `
-                <div class="smart-pick-card" data-secid="${stock.marketCode || ''}" data-code="${stock.code}" data-name="${stock.name}">
+                <div class="smart-pick-card" data-secid="${stock.marketCode || ''}" data-code="${stock.code}" data-name="${stock.name}" data-klines='${JSON.stringify(item.klines || []).replace(/'/g, "\\'")}'>
                     <div class="smart-pick-header">
                         <div>
                             <span class="smart-pick-name">${rankLabel} ${escapeHtml(stock.name)}</span>
@@ -860,12 +892,38 @@ const App = (() => {
                         </div>
                         <span class="smart-pick-score" style="color:${scoreColor}">${item.score}</span>
                     </div>
-                    <div class="smart-pick-price-info">
-                        <span class="${priceClass}">价格: ${stock.price != null ? stock.price.toFixed(2) : '--'}</span>
-                        <span class="${priceClass}">涨跌: ${stock.changePercent != null ? API.formatPercent(stock.changePercent) : '--'}</span>
-                        <span>市值: ${API.formatMarketCap(stock.totalMarketCap)}</span>
+                    
+                    <div class="smart-pick-price-row">
+                        <span class="smart-pick-price ${priceClass}">${stock.price != null ? stock.price.toFixed(2) : '--'}</span>
+                        <span class="smart-pick-change ${priceClass}">${stock.changePercent != null ? API.formatPercent(stock.changePercent) : '--'}</span>
+                        <span style="margin-left:auto;font-size:12px;color:var(--color-text-secondary);">市值: ${API.formatMarketCap(stock.totalMarketCap)}</span>
                     </div>
+                    
+                    <div class="smart-pick-fundamentals">
+                        <div class="smart-pick-fundamental-item">
+                            <span class="smart-pick-fundamental-label">市盈率</span>
+                            <span class="smart-pick-fundamental-value ${peColor}">${peValue}</span>
+                        </div>
+                        <div class="smart-pick-fundamental-item">
+                            <span class="smart-pick-fundamental-label">市净率</span>
+                            <span class="smart-pick-fundamental-value">${pbValue}</span>
+                        </div>
+                        <div class="smart-pick-fundamental-item">
+                            <span class="smart-pick-fundamental-label">换手率</span>
+                            <span class="smart-pick-fundamental-value ${turnoverColor}">${turnoverValue}</span>
+                        </div>
+                        <div class="smart-pick-fundamental-item">
+                            <span class="smart-pick-fundamental-label">量比</span>
+                            <span class="smart-pick-fundamental-value">${volumeValue}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="smart-pick-chart">
+                        <canvas id="chart-${stock.code}"></canvas>
+                    </div>
+                    
                     <div class="smart-pick-reasons">${reasonsHtml}</div>
+                    
                     <div class="smart-pick-scores">
                         <div class="smart-pick-sub-score">
                             <span class="smart-pick-sub-score-label">技术面</span>
@@ -894,6 +952,18 @@ const App = (() => {
                 if (secid) openDetail(secid, card.dataset.name, card.dataset.code);
             });
         });
+
+        // 绘制迷你走势图
+        setTimeout(() => {
+            picks.forEach(item => {
+                if (item.klines && item.klines.length > 0) {
+                    const canvas = document.getElementById(`chart-${item.stock.code}`);
+                    if (canvas) {
+                        Charts.drawMiniChart(canvas, item.klines);
+                    }
+                }
+            });
+        }, 100);
     }
 
     /**
