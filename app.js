@@ -513,11 +513,11 @@ const App = (() => {
         const indicators = Indicators.calcAll(klines);
         const latest = Indicators.getLatestIndicators(klines);
 
-        // 绘制K线图
-        Charts.drawKlineChart(dom.klineCanvas, klines, indicators);
+        // 绘制简化版迷你走势图（不卡）
+        Charts.drawMiniChart(dom.klineCanvas, klines, 'day');
 
-        // 更新图例
-        updateIndicatorLegend(latest);
+        // 更新图例（简化）
+        dom.indicatorLegend.innerHTML = '<span class="legend-item" style="color:#58a6ff;">走势图</span>';
 
         // 更新技术指标概览
         updateTechSummary(latest);
