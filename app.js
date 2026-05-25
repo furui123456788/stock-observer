@@ -811,7 +811,7 @@ const App = (() => {
     }
 
     /**
-     * 运行智能选股
+     * 运行智能选股 - 优化版带进度显示
      */
     async function runSmartPicks() {
         dom.smartLoading.style.display = 'flex';
@@ -819,9 +819,9 @@ const App = (() => {
         setStatus('智能选股分析中...', 'loading');
 
         try {
-            // 获取涨幅榜前200只股票
+            // 获取涨幅榜前160只股票（减少数量，从240减到160）
             const promises = [];
-            for (let i = 1; i <= 3; i++) {
+            for (let i = 1; i <= 2; i++) {
                 promises.push(API.fetchStockList(i, 80, 'f6', 0, 'all'));
             }
 
@@ -839,14 +839,18 @@ const App = (() => {
                 return true;
             });
 
-            // 智能选股
-            const picks = await Screener.getSmartPicks(allStocks, 10);
+            // 智能选股，带进度回调
+            const picks = await Screener.getSmartPicks(allStocks, 10, (current, total) => {
+                const progress = Math.round((current / total) * 100);
+                setStatus(`智能选股分析中... ${progress}%`, 'loading');
+            });
 
             renderSmartPicks(picks);
             dom.smartLoading.style.display = 'none';
             dom.smartResults.style.display = 'block';
             setStatus('就绪', 'online');
         } catch (e) {
+            console.error('智能选股失败:', e);
             dom.smartLoading.style.display = 'none';
             dom.smartResults.style.display = 'block';
             dom.smartTopPicks.innerHTML = '<p style="text-align:center;color:#8b949e;padding:20px;">分析失败，请重试</p>';

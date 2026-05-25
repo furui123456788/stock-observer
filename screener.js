@@ -567,13 +567,14 @@ const Screener = (() => {
     }
 
     /**
-     * 智能选股
-     * 获取综合评分最高的股票
+     * 智能选股 - 优化版
+     * 分批处理避免卡顿，支持进度回调
      * @param {Array} stocks - 股票列表
      * @param {number} topN - 返回前N只
+     * @param {Function} progressCallback - 进度回调 (current, total)
      * @returns {Promise<Array>} 带评分的股票列表
      */
-    async function getSmartPicks(stocks, topN = 10) {
+    async function getSmartPicks(stocks, topN = 10, progressCallback = null) {
         if (!stocks || stocks.length === 0) return [];
 
         // 过滤掉无效数据
@@ -589,28 +590,35 @@ const Screener = (() => {
             return { stock, ...result };
         }).sort((a, b) => b.score - a.score);
 
-        const candidates = preScored.slice(0, topN * 3);
+        // 减少候选数量，从30只减到20只，减少请求量
+        const candidates = preScored.slice(0, Math.min(topN * 2, 20));
 
         // 对候选股票获取K线和资金流向数据做深度评分
         const deepScored = [];
-        const batchSize = 3;
+        const batchSize = 2; // 减少批量大小，从3减到2
 
         for (let i = 0; i < candidates.length; i += batchSize) {
             const batch = candidates.slice(i, i + batchSize);
+            
+            // 每批处理前让出时间片，避免阻塞UI
+            if (i > 0) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
             const promises = batch.map(async (item) => {
                 try {
-                    // 获取K线数据
+                    // 获取K线数据 - 减少到60日，加快请求速度
                     const secid = item.stock.marketCode || `1.${item.stock.code}`;
-                    const klines = await API.fetchKline(secid, '101', 120);
+                    const klines = await API.fetchKline(secid, '101', 60);
 
                     let techIndicators = null;
                     let fundFlow = null;
 
-                    if (klines && klines.length >= 30) {
+                    if (klines && klines.length >= 20) {
                         techIndicators = Indicators.getLatestIndicators(klines);
                     }
 
-                    // 获取资金流向
+                    // 获取资金流向（可选，失败不阻塞）
                     try {
                         fundFlow = await API.fetchFundFlow(secid);
                     } catch (e) {
@@ -632,6 +640,11 @@ const Screener = (() => {
 
             const results = await Promise.all(promises);
             deepScored.push(...results);
+            
+            // 进度回调
+            if (progressCallback) {
+                progressCallback(Math.min(i + batchSize, candidates.length), candidates.length);
+            }
         }
 
         // 最终排序
