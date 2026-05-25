@@ -361,6 +361,72 @@ const Indicators = (() => {
         };
     }
 
+    /**
+     * 简化版技术指标概览 - 不需要K线数据
+     * 根据股票基本信息生成概览
+     */
+    function getSimpleSummary(stock) {
+        const pe = stock.pe;
+        const pb = stock.pb;
+        const volumeRatio = stock.volumeRatio;
+        
+        // 简单判断
+        let peSignal = 'neutral';
+        let pbSignal = 'neutral';
+        let volSignal = 'neutral';
+        let peAdvice = '合理';
+        let pbAdvice = '合理';
+        let volAdvice = '正常';
+        
+        if (pe != null) {
+            if (pe < 15) {
+                peSignal = 'bullish';
+                peAdvice = '低估';
+            } else if (pe > 40) {
+                peSignal = 'bearish';
+                peAdvice = '高估';
+            }
+        }
+        
+        if (pb != null) {
+            if (pb < 2) {
+                pbSignal = 'bullish';
+                pbAdvice = '低估';
+            } else if (pb > 8) {
+                pbSignal = 'bearish';
+                pbAdvice = '高估';
+            }
+        }
+        
+        if (volumeRatio != null) {
+            if (volumeRatio > 2) {
+                volSignal = 'bullish';
+                volAdvice = '放量';
+            } else if (volumeRatio < 0.5) {
+                volSignal = 'bearish';
+                volAdvice = '缩量';
+            }
+        }
+        
+        return {
+            pe: pe,
+            peAdvice: peAdvice,
+            peSignal: peSignal,
+            pb: pb,
+            pbAdvice: pbAdvice,
+            pbSignal: pbSignal,
+            volumeRatio: volumeRatio,
+            volAdvice: volAdvice,
+            volSignal: volSignal,
+            // 这些设为null表示不显示
+            macd: null,
+            dif: null,
+            dea: null,
+            kdj: null,
+            rsi14: null
+        };
+    }
+
     return {
         calcMA,
         calcEMA,
@@ -371,6 +437,7 @@ const Indicators = (() => {
         calcVOLMA,
         calcOBV,
         calcAll,
-        getLatestIndicators
+        getLatestIndicators,
+        getSimpleSummary
     };
 })();

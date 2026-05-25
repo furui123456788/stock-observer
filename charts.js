@@ -827,12 +827,25 @@ const Charts = (() => {
         ctx.fillText(changeText, width - padding.right - 2, padding.top + 2);
     }
 
+    /**
+     * 清除画布
+     */
+    function clearChart(canvas) {
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const container = canvas.parentElement;
+        const width = container ? container.clientWidth : 300;
+        const height = container ? container.clientHeight : 200;
+        ctx.clearRect(0, 0, width, height);
+    }
+
     return {
         drawKlineChart,
         drawFundFlowChart,
         drawNorthFlowChart,
         drawScoreGauge,
         drawMiniChart,
+        clearChart,
         COLORS,
         setupCanvas
     };

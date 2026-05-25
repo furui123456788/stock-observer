@@ -482,7 +482,7 @@ const App = (() => {
     }
 
     /**
-     * 加载技术分析
+     * 加载技术分析 - 简化版，不再获取K线数据
      */
     async function loadTechAnalysis() {
         const secid = dom.techStockInput.value.trim();
@@ -490,39 +490,39 @@ const App = (() => {
 
         state.techSecid = secid;
 
-        // 获取K线数据
-        setStatus('加载K线数据...', 'loading');
-        const klines = await API.fetchKline(secid, state.techPeriod, 120);
+        setStatus('加载中...', 'loading');
 
-        if (!klines || klines.length < 5) {
-            dom.techStockName.textContent = '数据不足';
-            return;
+        try {
+            // 只获取股票基本信息，不再获取K线
+            const stock = await API.fetchStockDetail(secid);
+
+            if (!stock) {
+                dom.techStockName.textContent = '数据不足';
+                setStatus('就绪', 'idle');
+                return;
+            }
+
+            // 更新基本信息
+            dom.techStockName.textContent = stock.name || '--';
+            dom.techStockPrice.textContent = stock.price != null ? stock.price.toFixed(2) : '--';
+            dom.techStockChange.textContent = stock.changePercent != null ? API.formatPercent(stock.changePercent) : '--';
+            dom.techStockChange.className = API.getPriceClass(stock.changePercent);
+            dom.techStockPrice.className = API.getPriceClass(stock.changePercent);
+
+            // 清空K线图表
+            Charts.clearChart(dom.klineCanvas);
+
+            // 更新图例
+            dom.indicatorLegend.innerHTML = '<span class="legend-item" style="color:#58a6ff;">暂无K线数据</span>';
+
+            // 清空技术指标概览
+            dom.techIndicatorsGrid.innerHTML = '<div class="loading-row">K线数据不可用</div>';
+
+            setStatus('就绪', 'online');
+        } catch (e) {
+            console.error('获取技术分析失败:', e);
+            setStatus('就绪', 'idle');
         }
-
-        // 获取股票基本信息
-        const detail = await API.fetchStockDetail(secid);
-        if (detail) {
-            dom.techStockName.textContent = detail.name;
-            dom.techStockPrice.textContent = detail.price != null ? detail.price.toFixed(2) : '--';
-            dom.techStockPrice.className = API.getPriceClass(detail.changePercent);
-            dom.techStockChange.textContent = detail.changePercent != null ? API.formatPercent(detail.changePercent) : '--';
-            dom.techStockChange.className = API.getPriceClass(detail.changePercent);
-        }
-
-        // 计算指标
-        const indicators = Indicators.calcAll(klines);
-        const latest = Indicators.getLatestIndicators(klines);
-
-        // 绘制简化版迷你走势图（不卡）
-        Charts.drawMiniChart(dom.klineCanvas, klines, 'day');
-
-        // 更新图例（简化）
-        dom.indicatorLegend.innerHTML = '<span class="legend-item" style="color:#58a6ff;">走势图</span>';
-
-        // 更新技术指标概览
-        updateTechSummary(latest);
-
-        setStatus('就绪', 'online');
     }
 
     /**
